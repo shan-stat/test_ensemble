@@ -169,49 +169,6 @@ get_nms_group_all_antigens <- function(X, assays, assays_to_exclude = "") {
   return(vars)
 }
 
-# K-fold CV #
-kfold.split=function(k, n1, n0, seed){
-  training.subsets=list()
-  test.subsets=list()
-  set.seed(seed)
-  tmp1=sample(1:n1)
-  tmp0=sample(1:n0)
-  splits=list()
-  for (ki in 1:k) {
-    splits[[ki]]=list(training=list(case=tmp1[(1:n1)%%k!=ki-1], control=tmp0[(1:n0)%%k!=ki-1]),
-                      test=list(case=tmp1[(1:n1)%%k==ki-1], control=tmp0[(1:n0)%%k==ki-1]))
-  }        
-  splits
-}
-
-# Split data #
-get.splits=function(dat, cv.scheme=c("5fold","10fold","loo",'lpo'), seed=1) {
-  # save rng state before set.seed in order to restore before exiting this function
-  # save.seed <- try(get(".Random.seed", .GlobalEnv), silent=TRUE) 
-  #if (class(save.seed)=="try-error") {set.seed(1); save.seed <- get(".Random.seed", .GlobalEnv) }      
-  set.seed(seed)
-  
-  if (cv.scheme=='5fold') {
-    n1=nrow(dat$case)
-    n0=nrow(dat$control)
-    splits=kfold.split(5, n1, n0, seed)
-  } else if(cv.scheme=='10fold'){
-    n1=nrow(dat$case)
-    n0=nrow(dat$control)
-    splits=kfold.split(10, n1, n0, seed)
-  } else if(cv.scheme=='loo'){
-    n=nrow(dat)
-    splits=loo.split(n)
-  } else if(cv.scheme=='lpo'){
-    n1=nrow(dat$case)
-    n0=nrow(dat$control)
-    splits=lpo.split(n1, n0)
-  }
-  # restore rng state 
-  # assign(".Random.seed", save.seed, .GlobalEnv)     
-  splits
-}
-
 # RF-based CV-AUC #
 get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','sRF_over','tRF'), seed=1){
   
