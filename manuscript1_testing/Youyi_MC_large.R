@@ -4,7 +4,8 @@ library(kyotil); library(MASS); library(boot); library(aucm); library(cvAUC);
 #library(lightgbm); # not able to install by following instructions from https://lightgbm.readthedocs.io/en/latest/R/index.html
 library(reticulate)
 if(!unix()) setwd("D:/gdrive/MachineLearning/sunwoo/code")
-source("sunwoo_shared/helper_cvauc.R")
+source("../helper_cvauc.R")
+source("../helper_rf_hvtn.R")
 #source_python("dl.py") #deep learning
 #source_python("lgb.py") #lightgbm
     
@@ -13,7 +14,7 @@ Args <- commandArgs(trailingOnly=TRUE)
 if (length(Args)==0) {
     # proj: boot for bootstrap, est for est only, LeDell for using cvAUC package
     # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_1, rv144_n40_0
-    Args=c(batch.size="10",batch.number="1",sim.setting="rv144_n40_1",fit.setting="5fold",proj="perm_rf3")  
+    Args=c(batch.size="10",batch.number="1",sim.setting="rv144_n40_1",fit.setting="5fold",proj="perm_rf2")  
 }
 myprint(Args)
 i=0;
@@ -123,37 +124,16 @@ res=sapply(seeds, simplify="array", function (seed) {
                 ret=mean(cv.aucs)
                 
                 if (proj=="perm_rf2") {
-                    # ulr screening, no weighting, p threshold 0.1
+                    # add ulr screening, no weighting, p threshold 0.1 (for rv144 .1 works better than .05)
+                    # this step is about twice as fast as no screening
                     cv.aucs.2 <-  sapply( splits, function(split){
                         dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                         dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                         set.seed(123)
                         # screening
                         predictors=setdiff(names(dat.train),"Y")
-                        pvals=sapply(predictors, function (x) last(c(summary.glm(glm.fit(cbind(1, dat.train[[x]]), dat.train$Y, family=binomial()))$coef)) )# a faster one than the next line
-                        #pvals=sapply(predictors, function (x) last(c(summary(glm(as.formula("Y~"%.%x), dat.train, family=binomial()))$coef)) )
-                        predictors=predictors[pvals < .1]
-                        if (length(predictors)>0) {
-                            fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
-                            pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-                            fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-                        } else .5
-                    })
-                    ret.2=mean(cv.aucs.2)
-                    # maximum of with and without screening
-                    ret=max(ret, ret.2)              
-                }
-                
-                if (proj=="perm_rf3") {
-                    # ulr screening, no weighting, p threshold 0.05
-                    cv.aucs.2 <-  sapply( splits, function(split){
-                        dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
-                        dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
-                        set.seed(123)
-                        # screening
-                        predictors=setdiff(names(dat.train),"Y")
-                        pvals=sapply(predictors, function (x) last(c(summary.glm(glm.fit(cbind(1, dat.train[[x]]), dat.train$Y, family=binomial()))$coef)) )
-                        predictors=predictors[pvals < .05]
+                        sel=screen_ulr (Y=dat.train$Y, X=dat.train[-1], family=binomial()) 
+                        predictors=predictors[sel]
                         if (length(predictors)>0) {
                             fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
                             pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
@@ -166,7 +146,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                 }
                 
                 if (proj=="perm_rf4") {
-                    # lasso screening, no weighting
+                    # add lasso screening, no weighting
                     cv.aucs.2 <-  sapply( splits, function(split){
                         dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                         dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )

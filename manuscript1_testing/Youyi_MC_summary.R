@@ -309,9 +309,8 @@ summary(res["est",])
 rm(list=ls())
 library(kyotil)
 #projs=c("BH","perm_min","primary1","primary2","oracle","perm_lgb","perm_lgb1","perm_dl"); names(projs)=projs
-projs=c("perm_rf", "perm_rf2", "perm_rf3"); names(projs)=projs
-seps=c("_1")
-#seps=c("_1")
+#projs=c("perm_rf", "perm_rf2", "perm_rf3"); names(projs)=projs; seps=c("_1")
+projs=c("perm_rf","perm_rf2"); names(projs)=projs; seps=c("_0")
 tab=
 sapply(projs, function(proj) {
 sapply(seps, function(sep) {

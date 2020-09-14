@@ -311,10 +311,20 @@ get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, seed=1){
 # more general functions
 
 screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X)), alpha = 1) {
-    set.seed(123)
+    set.seed(123) # needed for cv.glmnet
     res.ls <- cv.glmnet( x = as.matrix(X), y =  as.matrix(Y), weights = obsWeights, family = "binomial" , type.measure = 'auc', nfolds = 5, alpha = alpha ) # Lasso penalty
     vars.ls <- (coef( res.ls, s = res.ls$lambda.min ) != 0)[-1]
     vars <- vars.ls
     names(vars) <- colnames(X)
     return(vars)
+}
+
+screen_ulr <- function(Y, X, family, obsWeights=rep(1, nrow(X)), cutoff=0.1) {
+    pvals=sapply (1:ncol(X), function(i) {
+        fit=glm.fit(cbind(1, X[,i]), Y, family=binomial())
+        pval=last(c(summary.glm(fit)$coef)) # glm.fit is faster than glm
+        pval
+    })
+    sel=pvals<cutoff
+    sel
 }
