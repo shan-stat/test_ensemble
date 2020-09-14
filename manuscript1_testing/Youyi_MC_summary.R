@@ -301,17 +301,17 @@ summary(res["est",])
 
 
 
-#################################
+###################################################################################################
 # sim rv144
+###################################################################################################
+
 
 rm(list=ls())
 library(kyotil)
-# 
-#projs=c("BH","perm_min","perm_lgb","perm_lgb1","perm_dl"); names(projs)=projs
-projs=c("perm_rf","perm_min"); names(projs)=projs
 #projs=c("BH","perm_min","primary1","primary2","oracle","perm_lgb","perm_lgb1","perm_dl"); names(projs)=projs
+projs=c("perm_rf", "perm_rf2", "perm_rf3"); names(projs)=projs
 seps=c("_1")
-#seps=c("_0","_1")
+#seps=c("_1")
 tab=
 sapply(projs, function(proj) {
 sapply(seps, function(sep) {
@@ -334,10 +334,16 @@ tab
 
 mytex(tab, file="tables/pow_sim_rv144")
 
+
 # examine one set of results in more details
-res=get.sim.res("res_perm_dl/rv144_n40_1_5fold", verbose=T)
+res=get.sim.res("res_perm_rf/rv144_n40_1_5fold", verbose=T)
 summary(res["est",])
 
+res.1=get.sim.res("res_perm_rf2/rv144_n40_1_5fold", verbose=T)
+summary(res["est",])
+
+res.2=get.sim.res("res_perm_rf3/rv144_n40_1_5fold", verbose=T)
+summary(res["est",])
 
 # with z: 
 perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
