@@ -1,11 +1,16 @@
 # simulate datasets like MTCT
 rm (list=ls())
-library(kyotil); library(MASS); library(boot); library(aucm); library(cvAUC); 
+library(kyotil); library(MASS); library(boot); library(aucm); library(cvAUC); library(survey); library(ranger)
 #library(lightgbm); # not able to install by following instructions from https://lightgbm.readthedocs.io/en/latest/R/index.html
 library(reticulate)
-if(!unix()) setwd("D:/gdrive/MachineLearning/sunwoo/code")
-source("../helper_cvauc.R")
-source("../helper_rf_hvtn.R")
+if (unix()) {
+    source("../helper_cvauc.R")
+    source("../helper_rf_hvtn.R")
+} else {
+    setwd("D:/gdrive/MachineLearning/sunwoo/code")
+    source("sunwoo_shared/helper_cvauc.R")
+    source("sunwoo_shared/helper_rf_hvtn.R")
+}
 #source_python("dl.py") #deep learning
 #source_python("lgb.py") #lightgbm
     
@@ -13,8 +18,8 @@ source("../helper_rf_hvtn.R")
 Args <- commandArgs(trailingOnly=TRUE) 
 if (length(Args)==0) {
     # proj: boot for bootstrap, est for est only, LeDell for using cvAUC package
-    # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_1, rv144_n40_0
-    Args=c(batch.size="10",batch.number="1",sim.setting="rv144_n40_1",fit.setting="5fold",proj="perm_rf2")  
+    # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_1, rv144_n40_0, rv144ph2_n40_0
+    Args=c(batch.size="10",batch.number="1",sim.setting="rv144ph2_n10000_0",fit.setting="5fold",proj="perm_rf2")  
 }
 myprint(Args)
 i=0;
@@ -23,17 +28,18 @@ i=i+1; batch=as.numeric(Args[i])
 seeds=1:batch.size+batch.size*(batch-1); names(seeds)=seeds
 myprint(batch, batch.size)
 i=i+1; sim.setting=Args[i]
-tmp=strsplit(sim.setting,"_")[[1]]
-sim.model=tmp[1]
-sample.size=tmp[2]
-beta=as.numeric(tmp[3]) 
+    tmp=strsplit(sim.setting,"_")[[1]]
+    sim.model=tmp[1]
+    sample.size=tmp[2]
+    beta=as.numeric(tmp[3]) 
 i=i+1; fit.setting=Args[i]
-cv.scheme=fit.setting
+    cv.scheme=fit.setting
+    fit2ph=endsWith(sim.model,"ph2")
 i=i+1; proj=Args[i]
     
 nperm=1e3 # permutation replicates
 verbose=ifelse(unix(),0,2)
-seed=1 # temp seed for debugging use, does not matter
+seed=1841 # temp seed for debugging use, does not matter
 make.plot=FALSE
 if(make.plot) {seeds=1:9; mypdf(mfrow=c(3,3), file=paste0(proj,"_distr_",sim.setting))}
 myprint(sample.size, sim.model)
@@ -54,26 +60,36 @@ res=sapply(seeds, simplify="array", function (seed) {
         n1=500; n0=500
     } else if (sample.size=="n2000") {
         n1=2000; n0=2000
+    } else if (sample.size=="n10000") {
+        n1=NULL; n0=NULL; n=1e4
     } else stop("wrong simple.size")
     
     if (sim.model=="mtct") {
         dat=sim.mtct(n1, n0, seed, beta, beta.z.1=1, beta.z.2=1)
     } else if (sim.model=="rv144") {
-        if(beta==1) {
-            dat=sim.rv144(n1, n0, seed, alpha=-1.9, betas=c(0.9,0.7,1.2,-1,-1.2), beta.z.1=0.5, beta.z.2=0)
-        } else if (beta==0) {
-            dat=sim.rv144(n1, n0, seed, alpha=-1.9, betas=c(0,0,0,0,0,0), beta.z.1=0, beta.z.2=0)
-        }
+        dat=sim.rv144(n1, n0, seed, alpha=-1.9, betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0)        
+    } else if (sim.model=="rv144ph2") {
+        dat=sim.rv144(NULL, NULL, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   #6.6
+        f = "as.factor(Y)~z1+z2+" %.% concatList(names(dat)[startsWith(names(dat),"x")],"+")    
     } else stop ("wrong sim.model")
     
     # actual number of cases and controls
     n1=sum(dat$y)
     n0=nrow(dat)-n1
-    p=ncol(dat)-3 # y, z1, z2
+    p=sum(startsWith(names(dat),"x"))
+    myprint(n1,n0,p)
         
     # perform testing
     if (proj=="BH") {
-        pvals=sapply (1:p, function(i) last(summary(glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial))$coef)[4])
+        pvals=sapply (1:p, function(i) {
+            if(!fit2ph) {
+                fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
+            } else {
+                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
+                fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+            }
+            last(summary(fit)$coef)
+        })
         p.adj=p.adjust(pvals, method="BH")
         out=min(p.adj)        
       
@@ -100,12 +116,21 @@ res=sapply(seeds, simplify="array", function (seed) {
         # proj-specific implementation
         # dat.b has dat.b$case and dat.b$control
         do.est=function(dat.b){
+        
             X=as.matrix(rbind(dat.b$case, dat.b$control))
             y=c(rep(1,nrow(dat.b$case)), rep(0,nrow(dat.b$control))) # for run_lgb, y needs to be a vector; for run_dl, y needs to be a matrix
             
             if(proj=="perm_min") {
                 dat.train=rbind(data.frame(y=1,dat.b$case), data.frame(y=0,dat.b$control))
-                pvals=sapply (1:p, function(i) last(summary(glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial))$coef))
+                pvals=sapply (1:p, function(i) {
+                    if(!fit2ph) {
+                        fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
+                    } else {
+                        dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
+                        fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+                    }
+                    last(summary(fit)$coef)                    
+                })
                 min(pvals)
                 
             } else if(startsWith(proj,"perm_rf")) {
@@ -113,19 +138,27 @@ res=sapply(seeds, simplify="array", function (seed) {
                 splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
                 
                 # no screening, no weighting
+                if(verbose) print("without screening")
                 cv.aucs <-  sapply( splits, function(split){
                     dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                     dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                     set.seed(123)
-                    fit.rf <- randomForest( factor(Y)~., dat.train )
-                    pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-                    fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                    if(!fit2ph) {
+                        fit.rf <- randomForest( as.formula(f), dat.train )
+                        pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
+                        fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                    } else {
+                        fit.rf <- ranger( as.formula(f), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
+                        pred.rf <- predict( fit.rf, data = dat.test )
+                        measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    }                                        
                 })
                 ret=mean(cv.aucs)
                 
                 if (proj=="perm_rf2") {
                     # add ulr screening, no weighting, p threshold 0.1 (for rv144 .1 works better than .05)
                     # this step is about twice as fast as no screening
+                    if(verbose) print("with screening")
                     cv.aucs.2 <-  sapply( splits, function(split){
                         dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                         dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
@@ -134,6 +167,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                         predictors=setdiff(names(dat.train),"Y")
                         sel=screen_ulr (Y=dat.train$Y, X=dat.train[-1], family=binomial()) 
                         predictors=predictors[sel]
+                        if(verbose) myprint(sum(sel))
                         if (length(predictors)>0) {
                             fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
                             pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
@@ -167,7 +201,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                 }
                 
                 ret
-
+    
             } else if(startsWith(proj,"perm_dl")) {
                 # deep learning through the python script
                 if (sim.model=="mtct") {
@@ -235,10 +269,15 @@ res=sapply(seeds, simplify="array", function (seed) {
     
             } else stop("wrong proj")
         }
-        
-        dat.tmp=list(case=subset(dat, y==1, select=-y), control=subset(dat, y==0, select=-y))
-        dat.case.control=rbind(dat.tmp$case, dat.tmp$control)
+
+        dat.tmp=list(case=subset(dat, y==1), 
+                  control=subset(dat, y==0))
+#        dat.tmp=list(case=subset(dat, y==1, select=startsWith(names(dat),"x") | startsWith(names(dat),"z")), 
+#                  control=subset(dat, y==0, select=startsWith(names(dat),"x") | startsWith(names(dat),"z")))
         est=do.est(dat.tmp)        
+        
+        # for next use
+        dat.case.control=rbind(dat.tmp$case, dat.tmp$control)
         
         N=n0+n1        
         if (choose(N,n1)<=nperm) p.method="exact" else p.method="Monte Carlo"
@@ -247,8 +286,8 @@ res=sapply(seeds, simplify="array", function (seed) {
             ref.distr=apply(indexes, 2, function(ind.1) {
                 ind.0=setdiff(1:N, ind.1)
                 dat.b=list()
-                dat.b$case=   cbind(dat.case.control[1:n1,c("z1","z2")],    subset(dat.case.control[ind.1,], select=-c(z1,z2)) )
-                dat.b$control=cbind(dat.case.control[1:n0+n1,c("z1","z2")], subset(dat.case.control[ind.0,], select=-c(z1,z2)) )
+                dat.b$case=   cbind(dat.case.control[1:n1,   c("z1","z2","bstrat","wt")], subset(dat.case.control[ind.1,], select=-c(z1,z2,bstrat,wt)) )
+                dat.b$control=cbind(dat.case.control[1:n0+n1,c("z1","z2","bstrat","wt")], subset(dat.case.control[ind.0,], select=-c(z1,z2,bstrat,wt)) )
 #                dat.b$case=   dat.case.control[ind.1,]
 #                dat.b$control=dat.case.control[ind.0,]
                 do.est(dat.b)
@@ -258,14 +297,15 @@ res=sapply(seeds, simplify="array", function (seed) {
             #### save rng state before set.seed in order to restore before exiting this function
             save.seed <- try(get(".Random.seed", .GlobalEnv), silent=TRUE) 
             if (class(save.seed)=="try-error") { set.seed(1); save.seed <- get(".Random.seed", .GlobalEnv) }                        
-            set.seed(1)
             
-            ref.distr=replicate(nperm, {
+            ref.distr=sapply(1:nperm, function(perm.i) {
+                if(verbose) print(perm.i)
+                set.seed(perm.i)
                 ind.1=sample(1:N, n1)    # cases in the permutated dataset
                 ind.0=setdiff(1:N,ind.1) # controls in the permutated dataset
                 dat.b=list()
-                dat.b$case=   cbind(dat.case.control[1:n1,c("z1","z2")],    subset(dat.case.control[ind.1,], select=-c(z1,z2)) )
-                dat.b$control=cbind(dat.case.control[1:n0+n1,c("z1","z2")], subset(dat.case.control[ind.0,], select=-c(z1,z2)) )
+                dat.b$case=   cbind(dat.case.control[1:n1,   c("z1","z2","bstrat","wt")], subset(dat.case.control[ind.1,], select=-c(z1,z2,bstrat,wt)) )
+                dat.b$control=cbind(dat.case.control[1:n0+n1,c("z1","z2","bstrat","wt")], subset(dat.case.control[ind.0,], select=-c(z1,z2,bstrat,wt)) )
                 do.est(dat.b)
             })            
                 

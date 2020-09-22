@@ -310,7 +310,7 @@ rm(list=ls())
 library(kyotil)
 #projs=c("BH","perm_min","primary1","primary2","oracle","perm_lgb","perm_lgb1","perm_dl"); names(projs)=projs
 #projs=c("perm_rf", "perm_rf2", "perm_rf3"); names(projs)=projs; seps=c("_1")
-projs=c("perm_rf","perm_rf2"); names(projs)=projs; seps=c("_0")
+projs=c("perm_rf", "perm_rf2"); names(projs)=projs; seps=c("_0", "_1")
 tab=
 sapply(projs, function(proj) {
 sapply(seps, function(sep) {
@@ -331,7 +331,7 @@ tab
 rownames(tab)=c("size","power")
 tab
 
-mytex(tab, file="tables/pow_sim_rv144")
+mytex(tab, file="tables/pow_sim_rv144_rf")
 
 
 # examine one set of results in more details
@@ -343,11 +343,35 @@ summary(res["est",])
 
 res.2=get.sim.res("res_perm_rf3/rv144_n40_1_5fold", verbose=T)
 summary(res["est",])
+#
+## with z: 
+#perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
+#                  0.840                   0.749
+#
+## without z:
+#perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
+#                  0.879                   0.753
 
-# with z: 
-perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
-                  0.840                   0.749
 
-# without z:
-perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
-                  0.879                   0.753
+rm(list=ls())
+library(kyotil)
+projs=c("perm_rf"); names(projs)=projs; seps=c("_0","_1")
+tab=
+sapply(projs, function(proj) {
+sapply(seps, function(sep) {
+    sim.setting="rv144ph2_"%.%c("n10000")%.%sep  
+    fit.setting=c("5fold")
+    settings=c(t(outer(sim.setting, fit.setting, FUN=paste, sep="_"))); if(length(fit.setting)==1) {names(settings)=sim.setting;} else names(settings)=settings
+    reses=lapply (settings, function(sim.setting) get.sim.res("res_"%.%proj%.%"/"%.%sim.setting, verbose=T))
+    sapply (names(settings), function(s) {
+        if (proj=="BH" | proj=="oracle" | proj=="primary1" | proj=="primary2") {
+            mean(reses[[s]]<0.05)
+        } else if (startsWith(proj,"perm_")){
+            mean(reses[[s]]["p.value",]<0.05)
+        }
+    })
+})
+})
+tab
+rownames(tab)=c("size","power")
+tab
