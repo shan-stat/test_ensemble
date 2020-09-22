@@ -120,14 +120,14 @@ sim.rv144=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL) {
     dat[dat$ph2==1,]
 }
 
-seed=1; 
-alpha=-5; betas=rep(0,5) # 717 cases for n=1e5
-#alpha=-6.6; betas=c(0.9,0.7,1.2,-1,-1.2); # 731 cases for n=1e5
-beta.z.1=0.5; beta.z.2=0
-dat=sim.rv144(n1=NULL, n0=NULL, seed, alpha, betas, beta.z.1, beta.z.2, n=1e5) 
-with(dat, table(bstrat, ph2, y))
-with(dat, table(wt, ph2, y))
-sum(dat$y)
+#seed=1; 
+#alpha=-5; betas=rep(0,5) # 717 cases for n=1e5
+##alpha=-6.6; betas=c(0.9,0.7,1.2,-1,-1.2); # 731 cases for n=1e5
+#beta.z.1=0.5; beta.z.2=0
+#dat=sim.rv144(n1=NULL, n0=NULL, seed, alpha, betas, beta.z.1, beta.z.2, n=1e5) 
+#with(dat, table(bstrat, ph2, y))
+#with(dat, table(wt, ph2, y))
+#sum(dat$y)
 
 
 
