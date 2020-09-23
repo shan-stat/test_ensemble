@@ -141,15 +141,16 @@ res=sapply(seeds, simplify="array", function (seed) {
                     dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                     dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                     set.seed(123)
-                    if(!fit2ph) {
-                        fit.rf <- randomForest( as.formula(f), dat.train )
-                        pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-                        fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-                    } else {
+#                    if(!fit2ph) {
+                        # randomForest does not handle weights
+#                        fit.rf <- randomForest( as.formula(f), dat.train )
+#                        pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
+#                        fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+#                    } else {
                         fit.rf <- ranger( as.formula(f), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
                         pred.rf <- predict( fit.rf, data = dat.test )# not allow type="prob"
                         measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
-                    }                                        
+#                    }                                        
                 })
                 ret=mean(cv.aucs)
                 
