@@ -1,9 +1,10 @@
-### Required file for Stacking ###
-setwd('/Users/shan/Desktop/caretEnsemble_mod/R')
+### For Stacking ###
+setwd('/Users/shan/Desktop/Paper/YFong/2.HVTN/Code/caretEnsemble_modified/R')
 source('helper_functions.R')
 source('caretList.R')
 source('caretEnsemble.R')
 source('caretStack.R')
+source('method.R')
 
 
 
@@ -41,73 +42,40 @@ X_vaccine <- vaccinees %>% select( -Y, -weights )
 assays <- unique(var.super$assay)
 antigens <- unique(var.super$antigen)
 
-pred.mat <- matrix( NA, nrow = 10, ncol = 5 )
-colnames( pred.mat ) <- c( 'None', 'BAMA', 'Tcells', 'All', 'BAMA_Tcells' )
-
-# 2-1. No markers (only clinical covariates : age, BMI, bhrisk) #
-var_set_none <- rep(FALSE, ncol(X_markers))
-var_set_none <- c( rep(TRUE, 3), var_set_none )
-dat <- cbind( Y = Y_vaccine, X_vaccine[,var_set_none] )
-dat.X <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$dat
-screen.var <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$screen.var
-
-# 2-2. BAMA markers (IgG + IgA + IgG3) #
-var_set_igg_iga_igg3 <- get_nms_group_all_antigens(X_markers, assays = c("IgG", "IgA", "IgG3"))
-var_set_igg_iga_igg3 <- c( rep(TRUE, 3), var_set_igg_iga_igg3 )
-dat <- cbind( Y = Y_vaccine, X_vaccine[,var_set_igg_iga_igg3] )
-dat.X <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$dat
-screen.var <- screen.index(dat = dat, method = 'ls', obsWeights = weights_vaccine)$screen.var
-
-# 2-3. T cells (CD4 and CD8) #
-var_set_tcells <- get_nms_group_all_antigens(X_markers, assays = c("CD4", "CD8"))
-var_set_tcells <- c( rep(TRUE, 3), var_set_tcells )
-dat <- cbind( Y = Y_vaccine, X_vaccine[,var_set_tcells] )
-dat.X <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$dat
-screen.var <- screen.index(dat = dat, method = 'ls', obsWeights = weights_vaccine)$screen.var
-
-# 2-4. All markers #
-var_set_all <- rep(TRUE, ncol(X_markers))
-var_set_all <- c( rep(TRUE, 3), var_set_all )
-dat <- cbind( Y = Y_vaccine, X_vaccine[,var_set_all] )
-dat.X <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$dat
-screen.var <- screen.index(dat = dat, method = 'ls', obsWeights = weights_vaccine)$screen.var
-
-# 2-5. BAMA markers + T cells #
-var_set_igg_iga_igg3_tcells <- get_nms_group_all_antigens(X_markers, assays = c("IgG", "IgA", "IgG3", "CD4", "CD8"))
-var_set_igg_iga_igg3_tcells <- c( rep(TRUE, 3), var_set_igg_iga_igg3_tcells )
-dat <- cbind( Y = Y_vaccine, X_vaccine[,var_set_igg_iga_igg3_tcells] )
-dat.X <- screen.index(dat = dat, method = 'all', obsWeights = weights_vaccine)$dat
-screen.var <- screen.index(dat = dat, method = 'ls', obsWeights = weights_vaccine)$screen.var
+# for RF, screen.dat.method = 'ls' and screen.index.method = 'ls'
+# for stacking, screen.dat.method = 'all' and screen.index.method = 'ls'
+res.screen <- screen.dat.index(Y = Y_vaccine, X = X_vaccine, X_markers = X_markers, fit.set = 'BAMA', 
+                               screen.dat.method = 'all', screen.index.method = 'ls', obsWeights = weights_vaccine)
+dat.X <- res.screen$dat
+screen.var <- res.screen$screen.index.var
 
 
 
 # 3. Fitting codes #
+pred.mat <- matrix( NA, nrow = 10, ncol = 5 )
+colnames( pred.mat ) <- can.set <- c('None','BAMA','Tcells','BAMA_Tcells','All')
+
+fit.method <- 'ST'   # 'RF' for Random Forest analysis and 'ST' for Stacking analysis
+fit.set <- 'BAMA'    # one of candidate sets: 'None', 'BAMA', 'Tcells', 'BAMA_Tcells', 'All'
+
 for( i in 1:10 ){
   print(i)
   seed <- i
   
-  # RF-based models #
-  res.temp <- get.rf.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, method = 'sRF', seed = seed )
+  if( fit.method == 'RF' ){
+    # RF #
+    res.temp <- get.rf.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, method = 'sRF', seed = seed )
+  } else if( fit.method == 'ST' ){
+    # Stacking #
+    res.temp <- get.st.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, 
+                              var.index = list(glm  = c(TRUE, rep(TRUE,3), rep(FALSE,ncol(dat.X$case)-3)), # baseline covariates
+                                               rf   = c(TRUE, screen.var)),                                 # baseline covariates + screened variables
+                                               #rf.1 = c(TRUE, rep(TRUE,ncol(dat.X$case)))),                # All variables
+                              method = 'method.NNloglik', seed = seed )
+  }
   
-  # Stacking with 3 learners #
-  #res.temp <- get.st.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, 
-  #                          var.index = list(glm  = c(TRUE, rep(TRUE,3), rep(FALSE,ncol(dat.X$case)-3)), # clinical covariates
-  #                                           rf   = c(TRUE, screen.var),                                  # clinical covariates + screened variables
-  #                                           rf.1 = c(TRUE, rep(TRUE,ncol(dat.X$case)))),               # all variables
-  #                          seed = seed )
-  
-  # Stacking with 2 learners #
-  #res.temp <- get.st.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, 
-  #                          var.index = list(glm = c(TRUE, rep(TRUE,3), rep(FALSE,ncol(dat.X$case)-3)), # clinical covariates
-  #                                           rf  = c(TRUE, screen.var)),                                  # clinical covariates + screened variables
-  #                          seed = seed )
-  
-  pred.mat[i, 'None']        <- mean( res.temp )
-  #pred.mat[i, 'BAMA']        <- mean( res.temp )
-  #pred.mat[i, 'Tcells']      <- mean( res.temp )
-  #pred.mat[i, 'All']         <- mean( res.temp )
-  #pred.mat[i, 'BAMA_Tcells'] <- mean( res.temp )
+  pred.mat[i, fit.set] <- mean( res.temp )
 }
 apply(pred.mat, 2, mean)
 
-write.table( pred.mat, file = '/Users/shan/Desktop/Paper/YFong/2.HVTN/Result/ST_can_2.txt', col.names = T, sep = ',' )
+write.table( pred.mat, file = '/Users/shan/Desktop/Paper/YFong/2.HVTN/Result/sRF_ulr_no.txt', col.names = T, sep = ',' )
