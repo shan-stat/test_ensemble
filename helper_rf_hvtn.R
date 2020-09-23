@@ -3,6 +3,8 @@ library(parallel); library(foreach); library(doParallel)
 library(aucm); library(cvAUC); library(MASS)
 library(HVTN505); library(kyotil); library(dplyr); library(vimp)
 library(glmnet); library(tuneRanger); library(caret)
+library(nnls); library(quadprog); library(nloptr)
+
 
 
 # Logistic regression univariate p-value < level #
@@ -126,28 +128,70 @@ screen_ulr_pval_plus_exposure <- function(Y, X, family, obsWeights, minPvalue=0.
 }
 
 # Total screening function #
-screen.index <- function(dat, method = c('all', 'dr', 'drs', 'ls', 'hc', 'ulr'), obsWeights){
-  if( method == 'all' ){
-    screen.var <- rep(TRUE, (ncol(dat)-1))
-  }
-  if( method == 'dr' ){
-    screen.var <- screen_dynamic_range_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
-  }
-  if( method == 'drs' ){
-    screen.var <- screen_dynamic_range_score_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
-  }
-  if( method == 'ls' ){
-    screen.var <- screen_lasso_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
-  }
-  if( method == 'hc' ){
-    screen.var <- screen_highcor_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
-  }
-  if( method == 'ulr' ){
-    screen.var <- screen_ulr_pval_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
-  }
-  dat.X <- list( case = dat[dat$Y == 1, c(FALSE, screen.var)], control = dat[dat$Y == 0, c(FALSE, screen.var)])
+screen.dat.index <- function(Y, X, X_markers, fit.set = c('None','BAMA','Tcells','BAMA_Tcells','All'),
+                             screen.dat.method = c('all','dr','drs','ls','hc','ulr'), 
+                             screen.index.method = c('all','dr','drs','ls','hc','ulr'), obsWeights){
   
-  return(list(screen.var = screen.var, dat = dat.X))
+  # Candidate set #
+  if( fit.set == 'None' ){
+    # 2-1. No markers (only clinical covariates : age, BMI, bhrisk) #
+    var_set_none <- rep(FALSE, ncol(X_markers))
+    var_set_none <- c( rep(TRUE, 3), var_set_none )
+    dat <- cbind(Y = Y, X[,var_set_none])
+  } else if( fit.set == 'BAMA' ){
+    # 2-2. BAMA markers (IgG + IgA + IgG3) #
+    var_set_igg_iga_igg3 <- get_nms_group_all_antigens(X_markers, assays = c("IgG", "IgA", "IgG3"))
+    var_set_igg_iga_igg3 <- c( rep(TRUE, 3), var_set_igg_iga_igg3 )
+    dat <- cbind(Y = Y, X[,var_set_igg_iga_igg3])
+  } else if( fit.set == 'Tcells' ){
+    # 2-3. T cells (CD4 and CD8) #
+    var_set_tcells <- get_nms_group_all_antigens(X_markers, assays = c("CD4", "CD8"))
+    var_set_tcells <- c( rep(TRUE, 3), var_set_tcells )
+    dat <- cbind(Y = Y, X[,var_set_tcells])
+  } else if( fit.set == 'BAMA_Tcells' ){
+    # 2-5. BAMA markers + T cells #
+    var_set_igg_iga_igg3_tcells <- get_nms_group_all_antigens(X_markers, assays = c("IgG", "IgA", "IgG3", "CD4", "CD8"))
+    var_set_igg_iga_igg3_tcells <- c( rep(TRUE, 3), var_set_igg_iga_igg3_tcells )
+    dat <- cbind(Y = Y, X[,var_set_igg_iga_igg3_tcells])
+  } else if( fit.set == 'All' ){
+    # 2-4. All markers #
+    var_set_all <- rep(TRUE, ncol(X_markers))
+    var_set_all <- c( rep(TRUE, 3), var_set_all )
+    dat <- cbind(Y = Y, X[,var_set_all])
+  }
+  
+  # Screened data #
+  if( screen.dat.method == 'all' ){
+    screen.dat.var <- rep(TRUE, (ncol(dat)-1))
+  } else if( screen.dat.method == 'dr' ){
+    screen.dat.var <- screen_dynamic_range_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.dat.method == 'drs' ){
+    screen.dat.var <- screen_dynamic_range_score_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.dat.method == 'ls' ){
+    screen.dat.var <- screen_lasso_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.dat.method == 'hc' ){
+    screen.dat.var <- screen_highcor_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.dat.method == 'ulr' ){
+    screen.dat.var <- screen_ulr_pval_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  }
+  
+  # Screened index #
+  if( screen.index.method == 'all' ){
+    screen.index.var <- rep(TRUE, (ncol(dat)-1))
+  } else if( screen.index.method == 'dr' ){
+    screen.index.var <- screen_dynamic_range_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.index.method == 'drs' ){
+    screen.index.var <- screen_dynamic_range_score_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.index.method == 'ls' ){
+    screen.index.var <- screen_lasso_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.index.method == 'hc' ){
+    screen.index.var <- screen_highcor_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  } else if( screen.index.method == 'ulr' ){
+    screen.index.var <- screen_ulr_pval_plus_exposure( Y = dat$Y, X = dat[,colnames(dat)!='Y'], family = 'binomial', obsWeights = obsWeights )
+  }
+  
+  dat.X <- list( case = dat[dat$Y == 1, c(FALSE, screen.dat.var)], control = dat[dat$Y == 0, c(FALSE, screen.dat.var)])
+  return(list(screen.index.var = screen.index.var, dat = dat.X))
 }
 
 # Variable names #
@@ -249,12 +293,12 @@ get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','
 }
 
 # Stacking CV-AUC #
-get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, seed=1){
+get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, method, seed=1){
   
-  # Split data for k-fold CV #
+  # Outer layer: 5-fold CV #
   splits <- get.splits(dat, cv.scheme, seed)
   
-  # Set train condition: inner layer is LOOCV #
+  # Inner layer: 5-fold CV #
   my_control <- trainControl(
     method="cv",
     number=119,
@@ -263,42 +307,58 @@ get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, seed=1){
     summaryFunction=twoClassSummary
   )
   
-  # For sRF #
-  rf_grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf)-1)), splitrule = 'gini', min.node.size = 1)
-  #rf.1_grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf.1)-1)), splitrule = 'gini', min.node.size = 1)
+  # Method of estimating regression coefficients for stacking #
+  method <- get(method, mode = 'function')()
+  if(!is.null(method$require)) {
+    sapply(method$require, function(x) require(force(x), character.only = TRUE))
+  }
   
-  # Fit base learns #
+  # Fit candidate learners #
   cv.aucs <-  mclapply( splits, function(split){
+    # The target variables must be named as 'Y' #
     dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
     dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
+    # Y=1, 0 must be converted to 'case' and 'contrl' factor levels respectively #
     dat.train$Y <- as.factor(dat.train$Y) ; levels(dat.train$Y) <- c('control','case')
     weights.train <- obsWeights[as.numeric(rownames(dat.train))] ; weights.test <- obsWeights[as.numeric(rownames(dat.test))]
     
-    # 3 learners : glm, sRF, sRF.1 #
-    #set.seed( 123 )
-    #model_list <- caretList(
-    #  list(Y~., data=dat.train[,var.index$glm], weights = weights.train), 
-    #  list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf_grid, weights = weights.train),
-    #  list(Y~., data=dat.train[,var.index$rf.1], tuneGrid = rf.1_grid, weights = weights.train),
-    #  trControl=my_control,
-    #  methodList=c('glm', 'ranger', 'ranger')
-    #)
+    # Stacking with two candidate learners #
+    if(length(var.index) == 2){
+      # For sRF #
+      rf_grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf)-1)), splitrule = 'gini', min.node.size = 1)
+      set.seed( 123 )
+      model_list <- caretList(
+        list(Y~., data=dat.train[,var.index$glm], weights = weights.train), 
+        list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf_grid, weights = weights.train),
+        trControl=my_control,
+        methodList=c('glm', 'ranger')
+      )
+    }
     
-    # 2 learners : glm, sRF #
+    # Stacking with three candidate learners #
+    if(length(var.index) == 3){
+      # For sRF #
+      rf_grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf)-1)), splitrule = 'gini', min.node.size = 1)
+      rf.1_grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf.1)-1)), splitrule = 'gini', min.node.size = 1)
+      set.seed( 123 )
+      model_list <- caretList(
+        list(Y~., data=dat.train[,var.index$glm], weights = weights.train), 
+        list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf_grid, weights = weights.train),
+        list(Y~., data=dat.train[,var.index$rf.1], tuneGrid = rf.1_grid, weights = weights.train),
+        trControl=my_control,
+        methodList=c('glm', 'ranger', 'ranger')
+      )
+    }
+    
+    # Super learning #
     set.seed( 123 )
-    model_list <- caretList(
-      list(Y~., data=dat.train[,var.index$glm], weights = weights.train), 
-      list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf_grid, weights = weights.train),
-      trControl=my_control,
-      methodList=c('glm', 'ranger')
-    )
-    
-    # caretEnsemble #
-    greedy_ensemble <- caretStack(model_list, method = 'glm') # least squares
-    #summary(greedy_ensemble)
-    
+    pred.cv <- makePredObsMatrix(model_list)
+    res.st.fit <- method$computeCoef(Z = pred.cv$preds, Y =(as.numeric(pred.cv$obs)-1), obsWeights = weights.train, 
+                                     libraryNames = names(var.index), verbose = FALSE)
+    pred.test <- predict.caretList(model_list, newdata=dat.test)
+    pred.st <- method$computePred(predY = pred.test, coef = res.st.fit$coef)
+  
     # Predict stacking on test set #
-    pred.st <- predict.caretStack(object=greedy_ensemble, newdata=dat.test, type="prob")
     measure_auc( pred.st, dat.test$Y, weights = weights.test )$point_est
   }, mc.cores = 4 )
   cv.aucs <- unlist( cv.aucs )
@@ -311,20 +371,20 @@ get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, seed=1){
 # more general functions
 
 screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X)), alpha = 1) {
-    set.seed(123) # needed for cv.glmnet
-    res.ls <- cv.glmnet( x = as.matrix(X), y =  as.matrix(Y), weights = obsWeights, family = "binomial" , type.measure = 'auc', nfolds = 5, alpha = alpha ) # Lasso penalty
-    vars.ls <- (coef( res.ls, s = res.ls$lambda.min ) != 0)[-1]
-    vars <- vars.ls
-    names(vars) <- colnames(X)
-    return(vars)
+  set.seed(123)
+  res.ls <- cv.glmnet( x = as.matrix(X), y =  as.matrix(Y), weights = obsWeights, family = "binomial" , type.measure = 'auc', nfolds = 5, alpha = alpha ) # Lasso penalty
+  vars.ls <- (coef( res.ls, s = res.ls$lambda.min ) != 0)[-1]
+  vars <- vars.ls
+  names(vars) <- colnames(X)
+  return(vars)
 }
 
 screen_ulr <- function(Y, X, family, obsWeights=rep(1, nrow(X)), cutoff=0.1) {
-    pvals=sapply (1:ncol(X), function(i) {
-        fit=glm.fit(cbind(1, X[,i]), Y, family=binomial(), weights=obsWeights)
-        pval=last(c(summary.glm(fit)$coef)) # glm.fit is faster than glm
-        pval
-    })
-    sel=pvals<cutoff
-    sel
+  pvals=sapply (1:ncol(X), function(i) {
+    fit=glm.fit(cbind(1, X[,i]), Y, family=binomial(), weights=obsWeights)
+    pval=last(c(summary.glm(fit)$coef)) # glm.fit is faster than glm
+    pval
+  })
+  sel=pvals<cutoff
+  sel
 }
