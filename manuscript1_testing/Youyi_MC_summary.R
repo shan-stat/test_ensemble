@@ -404,3 +404,55 @@ sapply(seps, function(sep) {
 })
 })
 tab
+
+
+# size
+rm(list=ls())
+library(kyotil)
+projs=c("perm_min", "perm_rf"); names(projs)=projs; 
+seps=c("_0")
+sims=c("rv144_n40","rv144ph2_n10000"); names(sims)=sims
+tab=
+sapply(sims, function(sim) {
+sapply(projs, function(proj) {
+sapply(seps, function(sep) {
+    sim.setting=sim%.%sep  
+    fit.setting=c("5fold")
+    settings=c(t(outer(sim.setting, fit.setting, FUN=paste, sep="_"))); if(length(fit.setting)==1) {names(settings)=sim.setting;} else names(settings)=settings
+    reses=lapply (settings, function(sim.setting) get.sim.res("res_"%.%proj%.%"/"%.%sim.setting, verbose=T))
+    sapply (names(settings), function(s) {
+        if (proj=="BH" | proj=="oracle" | proj=="primary1" | proj=="primary2") {
+            mean(reses[[s]]<0.05)
+        } else if (startsWith(proj,"perm_")){
+            mean(reses[[s]]["p.value",]<0.05)
+        }
+    })
+})
+})
+})
+tab
+
+
+
+
+rm(list=ls())
+library(kyotil)
+
+res.1=get.sim.res("res_perm_min/rv144_n40_1_5fold")
+res.2=get.sim.res("res_perm_rf/rv144_n40_1_5fold")
+
+res.3=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold")
+res.4=get.sim.res("res_perm_rf/rv144ph2_n10000_1_5fold")
+
+
+tmp=merge(as.data.frame(t(res.1)), as.data.frame(t(res.2)), by="row.names")
+cor(tmp[,3], tmp[,5], method="spearman")
+table(tmp[,3]<.05, tmp[,5]<.05)
+summary(tmp)
+head(tmp)
+
+tmp=merge(as.data.frame(t(res.3)), as.data.frame(t(res.4)), by="row.names")
+cor(tmp[,3], tmp[,5], method="spearman")
+table(tmp[,3]<.05, tmp[,5]<.05)
+summary(tmp)
+head(tmp)

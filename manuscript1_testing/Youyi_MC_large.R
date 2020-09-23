@@ -19,7 +19,7 @@ Args <- commandArgs(trailingOnly=TRUE)
 if (length(Args)==0) {
     # proj: boot for bootstrap, est for est only, LeDell for using cvAUC package
     # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_1, rv144_n40_0, rv144ph2_n40_0
-    Args=c(batch.size="10",batch.number="1",sim.setting="rv144ph2_n10000_0",fit.setting="5fold",proj="perm_rf2")  
+    Args=c(batch.size="10",batch.number="1",sim.setting="rv144ph2_n10000_1",fit.setting="5fold",proj="perm_min")  
 }
 myprint(Args)
 i=0;
@@ -38,7 +38,7 @@ i=i+1; proj=Args[i]
     
 nperm=1e3 # permutation replicates
 verbose=ifelse(unix(),0,2)
-seed=1841 # temp seed for debugging use, does not matter
+seed=10 # temp seed for debugging use, does not matter
 make.plot=FALSE
 if(make.plot) {seeds=1:9; mypdf(mfrow=c(3,3), file=paste0(proj,"_distr_",sim.setting))}
 myprint(sample.size, sim.model)
@@ -79,7 +79,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     n0=N-n1
     p=sum(startsWith(names(dat),"x"))
     myprint(n1,n0,p)
-        
+
     # perform testing
     if (proj=="BH") {
         pvals=sapply (1:p, function(i) {
@@ -113,6 +113,8 @@ res=sapply(seeds, simplify="array", function (seed) {
       
     } else if (startsWith(proj,"perm")) {   
     # permutation-based tests
+# twop        10 6.392923e-06     0.214 0.6726069     0.000
+# full        10 1.950672e-04     0.018 0.5928747     0.047
             
         do.est=function(dat.b){# dat.b has dat.b$case and dat.b$control
         
@@ -122,10 +124,13 @@ res=sapply(seeds, simplify="array", function (seed) {
                     if(!fit2ph) {
                         fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
                     } else {
+                        # option 1 use survey package
                         dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
                         fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-                        # using glm weights produces the same point est but model-based p values, does not impact power much
+                        # option 2 use glm weights produces the same point est but model-based p values
                         #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
+                        # option 3 ignore weights
+                        #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
                     }
                     last(summary(fit)$coef)                    
                 })
@@ -283,12 +288,8 @@ res=sapply(seeds, simplify="array", function (seed) {
             } else stop("wrong proj")
         }
 
-        dat.tmp=list(case=subset(dat, y==1), 
-                  control=subset(dat, y==0))
-#        dat.tmp=list(case=subset(dat, y==1, select=startsWith(names(dat),"x") | startsWith(names(dat),"z")), 
-#                  control=subset(dat, y==0, select=startsWith(names(dat),"x") | startsWith(names(dat),"z")))
-        est=do.est(dat.tmp)        
-        
+        dat.tmp=list(case=subset(dat, y==1), control=subset(dat, y==0))
+        est=do.est(dat.tmp)                
         
         dat.case.control=rbind(dat.tmp$case, dat.tmp$control) # for permuting 
         if (choose(N,n1)<=nperm) p.method="exact" else p.method="Monte Carlo"
