@@ -1,10 +1,9 @@
 # Packages #
-library( parallel ); library( foreach ); library( doParallel )
-library( MASS ); library( e1071 ); library( stats )
-library( kyotil ); library( aucm ); library( cvAUC )
-library( glmnet ); library( lmtest )
-library( rpart ); library( randomForest ); library( fastAdaboost )
-library( ebmc )
+library(parallel); library(foreach); library(doParallel)
+library(MASS); library(e1071); library(stats)
+library(kyotil); library(aucm); library(cvAUC)
+library(glmnet); library(lmtest)
+library(rpart); library(randomForest); library(fastAdaboost); library(ebmc)
 
 
 
