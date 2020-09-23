@@ -310,7 +310,7 @@ rm(list=ls())
 library(kyotil)
 #projs=c("BH","perm_min","primary1","primary2","oracle","perm_lgb","perm_lgb1","perm_dl"); names(projs)=projs
 #projs=c("perm_rf", "perm_rf2", "perm_rf3"); names(projs)=projs; seps=c("_1")
-projs=c("perm_rf", "perm_rf2"); names(projs)=projs; seps=c("_0", "_1")
+projs=c("perm_min", "perm_rf", "perm_rf2"); names(projs)=projs; seps=c("_1")
 tab=
 sapply(projs, function(proj) {
 sapply(seps, function(sep) {
@@ -352,10 +352,11 @@ summary(res["est",])
 #perm_rf._1.rv144_n40_1 perm_min._1.rv144_n40_1
 #                  0.879                   0.753
 
-
+# two phase
 rm(list=ls())
 library(kyotil)
-projs=c("perm_rf"); names(projs)=projs; seps=c("_0","_1")
+projs=c("perm_min", "perm_rf", "perm_rf2"); names(projs)=projs; 
+seps=c("_1")
 tab=
 sapply(projs, function(proj) {
 sapply(seps, function(sep) {
@@ -374,4 +375,32 @@ sapply(seps, function(sep) {
 })
 tab
 rownames(tab)=c("size","power")
+tab
+
+
+
+# comparing cohort with two phase
+rm(list=ls())
+library(kyotil)
+projs=c("perm_min", "perm_rf"); names(projs)=projs; 
+seps=c("_1")
+sims=c("rv144_n40","rv144ph2_n10000"); names(sims)=sims
+tab=
+sapply(sims, function(sim) {
+sapply(projs, function(proj) {
+sapply(seps, function(sep) {
+    sim.setting=sim%.%sep  
+    fit.setting=c("5fold")
+    settings=c(t(outer(sim.setting, fit.setting, FUN=paste, sep="_"))); if(length(fit.setting)==1) {names(settings)=sim.setting;} else names(settings)=settings
+    reses=lapply (settings, function(sim.setting) get.sim.res("res_"%.%proj%.%"/"%.%sim.setting, verbose=T))
+    sapply (names(settings), function(s) {
+        if (proj=="BH" | proj=="oracle" | proj=="primary1" | proj=="primary2") {
+            mean(reses[[s]]<0.05)
+        } else if (startsWith(proj,"perm_")){
+            mean(reses[[s]]["p.value",]<0.05)
+        }
+    })
+})
+})
+})
 tab

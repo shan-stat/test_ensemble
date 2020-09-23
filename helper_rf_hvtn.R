@@ -321,7 +321,7 @@ screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X)), alpha = 1) {
 
 screen_ulr <- function(Y, X, family, obsWeights=rep(1, nrow(X)), cutoff=0.1) {
     pvals=sapply (1:ncol(X), function(i) {
-        fit=glm.fit(cbind(1, X[,i]), Y, family=binomial())
+        fit=glm.fit(cbind(1, X[,i]), Y, family=binomial(), weights=obsWeights)
         pval=last(c(summary.glm(fit)$coef)) # glm.fit is faster than glm
         pval
     })
