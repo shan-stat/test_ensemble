@@ -379,10 +379,10 @@ tab
 
 
 
-# comparing cohort with two phase
+# comparing power between cohort and two phase
 rm(list=ls())
 library(kyotil)
-projs=c("perm_min", "perm_rf"); names(projs)=projs; 
+projs=c("perm_min", "perm_rf", "BH"); names(projs)=projs; 
 seps=c("_1")
 sims=c("rv144_n40","rv144ph2_n10000"); names(sims)=sims
 tab=
@@ -438,21 +438,80 @@ tab
 rm(list=ls())
 library(kyotil)
 
-res.1=get.sim.res("res_perm_min/rv144_n40_1_5fold")
-res.2=get.sim.res("res_perm_rf/rv144_n40_1_5fold")
+#res.1=get.sim.res("res_perm_min/rv144_n40_1_5fold")
+#res.2=get.sim.res("res_perm_rf/rv144_n40_1_5fold")
 
-res.3=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold")
-res.4=get.sim.res("res_perm_rf/rv144ph2_n10000_1_5fold")
+#res.3=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold")
+#res.4=get.sim.res("res_perm_rf/rv144ph2_n10000_1_5fold")
 
 
-tmp=merge(as.data.frame(t(res.1)), as.data.frame(t(res.2)), by="row.names")
+tmp=merge(as.data.frame(t(res.1)), as.data.frame(t(res.3)), by="row.names")
+head(tmp)
+mean(tmp[,3]<.05)
+mean(tmp[,5]<.05)
+
 cor(tmp[,3], tmp[,5], method="spearman")
 table(tmp[,3]<.05, tmp[,5]<.05)
 summary(tmp)
-head(tmp)
 
-tmp=merge(as.data.frame(t(res.3)), as.data.frame(t(res.4)), by="row.names")
-cor(tmp[,3], tmp[,5], method="spearman")
-table(tmp[,3]<.05, tmp[,5]<.05)
-summary(tmp)
-head(tmp)
+
+res.1=get.sim.res("res_BH/rv144_n40_1_5fold")
+res.3=get.sim.res("res_BH/rv144ph2_n10000_1_5fold")
+head(cbind(res.1, res.3))
+
+
+res.1=get.sim.res("res_test1/rv144_n40_1_5fold")
+res.3=get.sim.res("res_test1/rv144ph2_n10000_1_5fold")
+mean(apply(res.1, 1, function(x)mean(x<.05)) - apply(res.3, 1, function(x)mean(x<.05)) <0)
+summary(apply(res.1, 1, function(x)mean(x<.05)))
+summary(apply(res.3, 1, function(x)mean(x<.05)))
+
+summary(apply(res.1,2,min))
+summary(apply(res.3,2,min))
+
+table(apply(res.1, 2, which.min))
+table(apply(res.3, 2, which.min))
+
+mean(res.1[25,]>res.3[25,])
+mean(res.1[1,]>res.3[1,])
+
+mean(apply(res.1,2,min)<.05)
+mean(apply(res.3,2,min)<.05)
+
+res.1=get.sim.res("res_BH/rv144_n40_1_5fold")
+res.3=get.sim.res("res_BH/rv144ph2_n10000_1_5fold")
+mean(res.1<.05)
+mean(res.3<.05)
+
+
+res.1=get.sim.res("res_BH/rv144ph2_n10000_0_5fold")
+res.3=get.sim.res("res_test1/rv144ph2_n10000_0_5fold")
+mean(res.1<.05)
+mean(res.3<.05)
+
+
+res.1=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold opt1")
+res.2=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold opt2")
+res.3=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold opt3")
+mean(res.1[,2]<.05)
+mean(res.2[,2]<.05)
+mean(res.3[,2]<.05)
+
+
+res.1=get.sim.res("res_perm_min/rv144ph2_n10000_1_5fold")
+res.2=get.sim.res("res_perm_rf/rv144ph2_n10000_1_5fold")
+res.3=get.sim.res("res_perm_rf2/rv144ph2_n10000_1_5fold")
+
+mean(res.1[2,]<.05)
+mean(res.2[2,]<.05)
+mean(res.3[2,]<.05)
+
+
+res.1=get.sim.res("res_test2/rv144_n40_1_5fold")
+res.3=get.sim.res("res_test2/rv144ph2_n10000_1_5fold")
+
+summary(res.1[25,])
+summary(res.3[25,])
+
+summary(res.1[1,])
+summary(res.3[1,])

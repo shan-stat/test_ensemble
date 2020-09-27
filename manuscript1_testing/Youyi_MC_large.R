@@ -18,8 +18,8 @@ if (unix()) {
 Args <- commandArgs(trailingOnly=TRUE) 
 if (length(Args)==0) {
     # proj: boot for bootstrap, est for est only, LeDell for using cvAUC package
-    # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_1, rv144_n40_0, rv144ph2_n40_0
-    Args=c(batch.size="10",batch.number="1",sim.setting="rv144ph2_n10000_1",fit.setting="5fold",proj="perm_min")  
+    # sim.setting: mtct_n25_0.5, mtct_n80_0.6, rv144_n40_0, rv144_n40_1, rv144ph2_n10000_1
+    Args=c(batch.size="10",batch.number="1",sim.setting="rv144ph2_n10000_1",fit.setting="5fold",proj="test2")  
 }
 myprint(Args)
 i=0;
@@ -38,7 +38,7 @@ i=i+1; proj=Args[i]
     
 nperm=1e3 # permutation replicates
 verbose=ifelse(unix(),0,2)
-seed=10 # temp seed for debugging use, does not matter
+seed=1 # temp seed for debugging use, does not matter
 make.plot=FALSE
 if(make.plot) {seeds=1:9; mypdf(mfrow=c(3,3), file=paste0(proj,"_distr_",sim.setting))}
 myprint(sample.size, sim.model)
@@ -65,11 +65,37 @@ res=sapply(seeds, simplify="array", function (seed) {
     
     if (sim.model=="mtct") {
         dat=sim.mtct(n1, n0, seed, beta, beta.z.1=1, beta.z.2=1)
-    } else if (sim.model=="rv144") {
-        dat=sim.rv144(n1, n0, seed, alpha=-1.9,                     betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0)        
-        f = "as.factor(Y)~z1+z2+" %.% concatList(names(dat)[startsWith(names(dat),"x")],"+")    
-    } else if (sim.model=="rv144ph2") {
-        dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+    } else if (startsWith(sim.model,"rv144"))  {
+        if (sim.model=="rv144") {
+            dat=sim.rv144(n1, n0, seed, alpha=-1.9,                     betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0)        
+        } else if (sim.model=="rv144ph2") {
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.9,0.7,1.2,-1,-1.2) else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)        
+            # min rf rf2: 1, 1, 1  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.2,-.5,-1.5)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: 0.7, 0.7, 0.7  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.15,-.15,-.15)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+            # min rf rf2: 0.06, 0.03, 0.02  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.5,-.5,-.5)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+            # min rf rf2: 0.09, 0.09, 0.08  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.5,-.5,-1)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+            # min rf rf2: 0.19, 0.26, 0.26  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.8,-.8,-1.2)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+            # min rf rf2: 0.82, 0.76, 0.74  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.6,-.8,-1.5)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n)   
+            # min rf rf2: .98, .97, .99  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.6,-.6,-1.2)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .47, .44, .48  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.6,-.6,-1.4)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .75, .73, .76  
+            #dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.6,-.8,-1.4)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .93, .90, .93  
+            #dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.8,-.6,-1.4)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .77, .74, .76  
+            # dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.8,0,-1.5)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .18, .32, xx
+            dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.8,0,-2)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) 
+            # min rf rf2: .46, .89, .88 
+        }
         f = "as.factor(Y)~z1+z2+" %.% concatList(names(dat)[startsWith(names(dat),"x")],"+")    
     } else stop ("wrong sim.model")
     
@@ -80,19 +106,35 @@ res=sapply(seeds, simplify="array", function (seed) {
     p=sum(startsWith(names(dat),"x"))
     myprint(n1,n0,p)
 
+
     # perform testing
     if (proj=="BH") {
         pvals=sapply (1:p, function(i) {
             if(!fit2ph) {
                 fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
             } else {
-                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
-                fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+                fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
+#                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
+#                fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
             }
             last(summary(fit)$coef)
         })
         p.adj=p.adjust(pvals, method="BH")
         out=min(p.adj)        
+      
+    } else if (proj=="test1") {
+        pvals=sapply (1:p, function(i) {
+            fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial, weights=dat$wt)
+            last(summary(fit)$coef)# p 
+        })
+        out=pvals
+      
+    } else if (proj=="test2") {
+        ests=sapply (1:p, function(i) {
+            fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial, weights=dat$wt)
+            last(summary(fit)$coef[,1]) # est
+        })
+        out=ests
       
     } else if (proj=="oracle") {
 #        dat$x.tmp=with(dat, x1+x2+x3+x4+x5)
@@ -112,25 +154,22 @@ res=sapply(seeds, simplify="array", function (seed) {
         out=anova(fit.0, fit, test="Chi")$P[2]
       
     } else if (startsWith(proj,"perm")) {   
-    # permutation-based tests
-# twop        10 6.392923e-06     0.214 0.6726069     0.000
-# full        10 1.950672e-04     0.018 0.5928747     0.047
             
         do.est=function(dat.b){# dat.b has dat.b$case and dat.b$control
         
-            if(proj=="perm_min") {
+            use.w= endsWith(proj,"w")
+            
+            if(startsWith(proj,"perm_min")) {
                 dat.train=rbind(data.frame(y=1,dat.b$case), data.frame(y=0,dat.b$control))
                 pvals=sapply (1:p, function(i) {
-                    if(!fit2ph) {
+                    if(!use.w) {
                         fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
                     } else {
                         # option 1 use survey package
                         dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
                         fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-                        # option 2 use glm weights produces the same point est but model-based p values
-                        #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
-                        # option 3 ignore weights
-                        #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
+#                        # option 2 use glm weights, which produces the same point est but model-based p values
+#                        fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
                     }
                     last(summary(fit)$coef)                    
                 })
@@ -146,20 +185,19 @@ res=sapply(seeds, simplify="array", function (seed) {
                     dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
                     dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                     set.seed(123)
-#                    if(!fit2ph) {
-                        # randomForest does not handle weights
-#                        fit.rf <- randomForest( as.formula(f), dat.train )
-#                        pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-#                        fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-#                    } else {
+                    if(use.w) {
                         fit.rf <- ranger( as.formula(f), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
                         pred.rf <- predict( fit.rf, data = dat.test )# not allow type="prob"
                         measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
-#                    }                                        
+                    } else {
+                        fit.rf <- randomForest( as.formula(f), dat.train )# randomForest does not handle weights
+                        pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
+                        fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                    }
                 })
                 ret=mean(cv.aucs)
                 
-                if (proj=="perm_rf2") {
+                if (startsWith(proj,"perm_rf2")) {
                     # ulr screening, p threshold 0.1 (for rv144 cutoff .1 works better than .05)
                     # this learner is about twice as fast as no screening since there are less variables in the learner
                     if(verbose) print("with screening")
@@ -170,20 +208,24 @@ res=sapply(seeds, simplify="array", function (seed) {
                         
                         # screening
                         predictors=names(dat.train)[startsWith(names(dat.train),"z") | startsWith(names(dat.train),"x")]
-                        sel=screen_ulr (Y=dat.train$Y, X=dat.train[,predictors], family=binomial(), obsWeights=dat.train$wt, cutoff=0.1) 
+                        if(use.w) {
+                            sel=screen_ulr (Y=dat.train$Y, X=dat.train[,predictors], family=binomial(), cutoff=0.1, obsWeights=dat.train$wt)
+                        } else {
+                            sel=screen_ulr (Y=dat.train$Y, X=dat.train[,predictors], family=binomial(), cutoff=0.1)
+                        }
                         predictors=predictors[sel]
                         if(verbose) myprint(sum(sel))
                         
                         if (length(predictors)>0) {
-                            if(!fit2ph) {
-                                fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
-                                pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-                                fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-                            } else {
+                            if(use.w) {
                                 fit.rf <- ranger( as.formula("factor(Y)~"%.% concatList(predictors,"+")), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
                                 pred.rf <- predict( fit.rf, data = dat.test )
                                 measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
-                            }     
+                            } else {
+                                fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
+                                pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
+                                fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                            }                            
                         } else .5
                     })
                     ret.2=mean(cv.aucs.2)
@@ -191,7 +233,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     ret=max(ret, ret.2)              
                 }
                 
-                if (proj=="perm_rf4") {
+                if (startsWith(proj,"perm_rf4")) {
                     # add lasso screening, no weighting
                     cv.aucs.2 <-  sapply( splits, function(split){
                         dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
@@ -288,10 +330,10 @@ res=sapply(seeds, simplify="array", function (seed) {
             } else stop("wrong proj")
         }
 
-        dat.tmp=list(case=subset(dat, y==1), control=subset(dat, y==0))
-        est=do.est(dat.tmp)                
+        dat.b=list(case=subset(dat, y==1), control=subset(dat, y==0))
+        est=do.est(dat.b)                
         
-        dat.case.control=rbind(dat.tmp$case, dat.tmp$control) # for permuting 
+        dat.case.control=rbind(dat.b$case, dat.b$control) # for permuting 
         if (choose(N,n1)<=nperm) p.method="exact" else p.method="Monte Carlo"
         if(p.method=="exact"){        
             indexes=combn(1:N, n1) 
@@ -354,17 +396,24 @@ foldername=foldername%.%sim.setting%.%"_"%.%fit.setting%.%"/"; if(!file.exists(f
 save (res, file=foldername%.%"/batch"%.%formatInt(batch, 3)%.%".Rdata")
 
 
-#library(parallel); library(kyotil)
-#mc.cores=30
-#res=mclapply(1:1e3, mc.cores=mc.cores, function (seed) {
+library(parallel); library(kyotil)
+source("../helper_cvauc.R")
+mc.cores=5
+beta=0
+res=mclapply(1:1e3, mc.cores=mc.cores, function (seed) {
+    dat=sim.rv144(n1=NULL, n0=NULL, seed, alpha=if(beta==1) -7.6 else -6, betas=if(beta==1) c(0.5,0.5, 0.8,0,-2)  else c(0,0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=1e4) 
+    c(nrow(dat), sum(dat$y))
 #    dat.1=sim.rv144(n1=40, n0=200, seed, alpha=-1.9,    betas=c(0.9,0.7,1.2,-1,-1.2), beta.z.1=0.5, beta.z.2=0)        
 #    dat.2=sim.rv144(n1=NULL, n0=NULL, seed, alpha=-7.6, betas=c(0.9,0.7,1.2,-1,-1.2), beta.z.1=0.5, beta.z.2=0, n=1e4)   
 #    c(nrow(dat.1), sum(dat.1$y), nrow(dat.2), sum(dat.2$y))
-#})
-#tmp=do.call(rbind, res)
-#apply(tmp, 2, median)
-## median sample size and case number
-## cohort
-## 240  50 
-## twophase
-## 186  31
+})
+tmp=do.call(rbind, res)
+apply(tmp, 2, mean)
+apply(tmp, 2, median)
+
+
+# rv144 median sample size and case number
+# cohort
+# 240  50 
+# twophase
+# 186  31
