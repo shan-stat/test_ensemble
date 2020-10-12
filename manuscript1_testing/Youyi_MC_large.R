@@ -113,9 +113,11 @@ res=sapply(seeds, simplify="array", function (seed) {
             if(!fit2ph) {
                 fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
             } else {
-                fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
-#                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
-#                fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+                # option 1 use survey package
+                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
+                fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+                # option 2 use glm with weights
+                fit=glm(as.formula("y~z1+z2+x"%.%i), dat, weights=dat$wt, family=binomial)
             }
             last(summary(fit)$coef)
         })
@@ -327,6 +329,285 @@ res=sapply(seeds, simplify="array", function (seed) {
                     , nrounds=best.iter)
                 fast.auc(predict(lgb.model,as.matrix(rbind(dat.b$case, dat.b$control))), c(rep(1,n1), rep(0,n0)), reverse.sign.if.nece = F)
     
+            } else if(startsWith(proj,"perm_mlr")) {
+                # MLR : Multivariate Logistic Regression #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  set.seed(123)
+                  if(use.w) {
+                    # option 1 use survey package
+                    #dstrat <- svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
+                    #fit.mlr <- svyglm( as.formula(f), design=dstrat, family="binomial")
+                    #pred.mlr <- predict( fit.mlr, newdata=select(dat.test, -c('Y','y','bstrat','ph2','wt')) ) # Error
+                    # option 2 use glm weights, which produces the same point est but model-based p values
+                    fit.mlr <- glm( as.formula(f), dat.train, family=binomial, weights=dat.train$wt)
+                    pred.mlr <- predict( fit.mlr, newdata=dat.test )
+                    measure_auc( pred.mlr, dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.mlr <- glm( as.formula(f), dat.train, family=binomial )
+                    pred.mlr <- predict( fit.mlr, newdata=dat.test )
+                    fast.auc( pred.mlr, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_rr")) {
+                # RR : Ridge Regression #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  dat.train.X <- as.matrix(select( dat.train, -c('Y','y','bstrat','ph2','wt') )); dat.train.y <- as.matrix(select( dat.train, 'Y' ))
+                  dat.test.X <- as.matrix(select( dat.test, -c('Y','y','bstrat','ph2','wt') )); dat.test.y <- as.matrix(select( dat.test, 'Y' ))
+                  set.seed(123)
+                  if(use.w) {
+                    fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
+                    pred.rr <- as.numeric(drop( predict( fit.rr , newx = dat.test.X , s = fit.rr$lambda.min ) ))
+                    measure_auc( pred.rr, dat.test.y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
+                    pred.rr <- as.numeric(drop( predict( fit.rr , newx = dat.test.X , s = fit.rr$lambda.min ) ))
+                    fast.auc( pred.rr, dat.test.y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_lr")) {
+                # LR : Lasso Regression #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  dat.train.X <- as.matrix(select( dat.train, -c('Y','y','bstrat','ph2','wt') )); dat.train.y <- as.matrix(select( dat.train, 'Y' ))
+                  dat.test.X <- as.matrix(select( dat.test, -c('Y','y','bstrat','ph2','wt') )); dat.test.y <- as.matrix(select( dat.test, 'Y' ))
+                  set.seed(123)
+                  if(use.w) {
+                    fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
+                    pred.lr <- as.numeric(drop( predict( fit.lr , newx = dat.test.X , s = fit.lr$lambda.min ) ))
+                    measure_auc( pred.lr, dat.test.y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
+                    pred.lr <- as.numeric(drop( predict( fit.lr , newx = dat.test.X , s = fit.lr$lambda.min ) ))
+                    fast.auc( pred.lr, dat.test.y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_dt")) {
+                # DT : Decision Tree #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  set.seed(123)
+                  if(use.w) {
+                    fit.dt <- rpart( as.formula(f), data=dat.train, weights=dat.train$wt )
+                    pred.dt <- predict( fit.dt, newdata=dat.test, type="prob" )
+                    measure_auc( pred.dt[,2], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.dt <- rpart( as.formula(f), data=dat.train )
+                    pred.dt <- predict( fit.dt, newdata=dat.test, type="prob" )
+                    fast.auc( pred.dt[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_bg")) {
+                # BG : Bagging #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  set.seed(123)
+                  if(use.w) {
+                    fit.bg <- ranger( as.formula(f), data=dat.train, case.weights=dat.train$wt, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )
+                    pred.bg <- predict( fit.bg, data = dat.test )# not allow type="prob"
+                    measure_auc( pred.bg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.bg <- randomForest( as.formula(f), dat.train, mtry = ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )# randomForest does not handle weights
+                    pred.bg <- predict( fit.bg, newdata=dat.test, type="prob" )
+                    fast.auc( pred.bg[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_ab")) {
+                # AB : AdaBoost #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  dat.train$Y <- factor(dat.train$Y)
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.ab <- adam2( Y~., data = select(dat.train, -c('y','bstrat','ph2','wt')), size = 100, alg = 'cart' )
+                    pred.ab <- predict( fit.ab, newdata=dat.test )
+                    measure_auc( pred.ab, dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.ab <- adam2( Y~., data = select(dat.train, -c('y','bstrat','ph2','wt')), size = 100, alg = 'cart' )
+                    pred.ab <- predict( fit.ab, newdata=dat.test )
+                    fast.auc( pred.ab, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_ubg")) {
+                # UBG : Bagging with under-sampling #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  class.dist <- table(dat.train$Y)
+                  weights.samp <- rep(NA, nrow(dat.train))
+                  weights.samp[dat.train$Y==1] <- class.dist['0']/class.dist['1']; weights.samp[dat.train$Y==0] <- 1
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.ubg <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))),
+                                       sample.fraction = (class.dist['1']*2)/sum(class.dist) )
+                    pred.ubg <- predict( fit.ubg, data=dat.test )
+                    measure_auc( pred.ubg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.ubg <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))),
+                                       sample.fraction = (class.dist['1']*2)/sum(class.dist) )
+                    pred.ubg <- predict( fit.ubg, data=dat.test )
+                    fast.auc( pred.ubg$predictions[,'1'], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_obg")) {
+                # OBG : Bagging with over-sampling #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+          
+                  # Oversampling minority class
+                  set.seed( 123 )
+                  idx1 <- sample( 1:sum(dat.train$Y==1), sum(dat.train$Y==0), replace = TRUE )
+                  dat.train.over <- rbind(dat.train[idx1,,drop=F], subset(dat.train, Y==0))
+          
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.obg <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train.over, -c('Y','y','bstrat','ph2','wt'))) )
+                    pred.obg <- predict( fit.obg, data=dat.test )
+                    measure_auc( pred.obg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.obg <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train.over, -c('Y','y','bstrat','ph2','wt'))) )
+                    pred.obg <- predict( fit.obg, data=dat.test )
+                    fast.auc( pred.obg$predictions[,'1'], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_urf")) {
+                # URF : RF with under-sampling #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  class.dist <- table(dat.train$Y)
+                  weights.samp <- rep(NA, nrow(dat.train))
+                  weights.samp[dat.train$Y==1] <- class.dist['0']/class.dist['1']; weights.samp[dat.train$Y==0] <- 1
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.urf <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, sample.fraction = (class.dist['1']*2)/sum(class.dist) )
+                    pred.urf <- predict( fit.urf, data=dat.test )
+                    measure_auc( pred.urf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.urf <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, sample.fraction = (class.dist['1']*2)/sum(class.dist) )
+                    pred.urf <- predict( fit.urf, data=dat.test )
+                    fast.auc( pred.urf$predictions[,'1'], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_orf")) {
+                # ORF : RF with over-sampling #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+          
+                  # Oversampling minority class
+                  set.seed( 123 )
+                  idx1 <- sample( 1:sum(dat.train$Y==1), sum(dat.train$Y==0), replace = TRUE )
+                  dat.train.over <- rbind(dat.train[idx1,,drop=F], subset(dat.train, Y==0))
+          
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.orf <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1 )
+                    pred.orf <- predict( fit.orf, data=dat.test )
+                    measure_auc( pred.orf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.orf <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1 )
+                    pred.orf <- predict( fit.orf, data=dat.test )
+                    fast.auc( pred.orf$predictions[,'1'], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_rusb")) {
+                # RUSB : Random Under Sampling Boosting #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  dat.train$Y <- factor(dat.train$Y)
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.rusb <- rus( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart' )
+                    pred.rusb <- predict( fit.rusb, newdata = dat.test )
+                    measure_auc( pred.rusb, dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.rusb <- rus( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart' )
+                    pred.rusb <- predict( fit.rusb, newdata = dat.test )
+                    fast.auc( pred.rusb, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
+            } else if(startsWith(proj,"perm_smoteb")) {
+                # SMOTEB : SMOTEBoost #
+                splits <- get.splits(dat.b, cv.scheme=cv.scheme, seed=1)                
+        
+                cv.aucs <-  sapply( splits, function(split){
+                  dat.train <- rbind( data.frame(Y=1, dat.b$case[split$training$case,,drop=F]),   data.frame(Y=0, dat.b$control[split$training$control,,drop=F]) )
+                  dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
+                  dat.train$Y <- factor(dat.train$Y)
+                  set.seed(123)
+                  if(use.w) {
+                    # The weights are used to only calculate CV-AUC
+                    fit.smoteb <- sbo( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart', over=500 )
+                    pred.smoteb <- predict( fit.smoteb, newdata = dat.test )
+                    measure_auc( pred.smoteb, dat.test$Y, weights = dat.test$wt )$point_est
+                  } else {
+                    fit.smoteb <- sbo( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart', over=500 )
+                    pred.smoteb <- predict( fit.smoteb, newdata = dat.test )
+                    fast.auc( pred.smoteb, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+                  }
+                })
+                mean(cv.aucs)
+        
             } else stop("wrong proj")
         }
 
