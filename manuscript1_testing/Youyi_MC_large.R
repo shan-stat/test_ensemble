@@ -117,7 +117,9 @@ res=sapply(seeds, simplify="array", function (seed) {
                 dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
                 fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
                 # option 2 use glm with weights
-                fit=glm(as.formula("y~z1+z2+x"%.%i), dat, weights=dat$wt, family=binomial)
+                #fit=glm(as.formula("y~z1+z2+x"%.%i), dat, weights=dat$wt, family=binomial)
+                # option 3 use glm without weights
+                #fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
             }
             last(summary(fit)$coef)
         })
@@ -170,8 +172,8 @@ res=sapply(seeds, simplify="array", function (seed) {
                         # option 1 use survey package
                         dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
                         fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-#                        # option 2 use glm weights, which produces the same point est but model-based p values
-#                        fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
+                        # option 2 use glm weights, which produces the same point est but model-based p values
+                        #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
                     }
                     last(summary(fit)$coef)                    
                 })
@@ -188,9 +190,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                     dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                     set.seed(123)
                     if(use.w) {
+                        # option 1 fit model with weights
+                        #fit.rf <- ranger( as.formula(f), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
+                        # option 2 fit model without weights
                         fit.rf <- ranger( as.formula(f), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
                         pred.rf <- predict( fit.rf, data = dat.test )# not allow type="prob"
-                        measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                        WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                     } else {
                         fit.rf <- randomForest( as.formula(f), dat.train )# randomForest does not handle weights
                         pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
@@ -222,7 +227,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                             if(use.w) {
                                 fit.rf <- ranger( as.formula("factor(Y)~"%.% concatList(predictors,"+")), data = dat.train, case.weights = dat.train$wt, probability = TRUE, min.node.size = 1 )
                                 pred.rf <- predict( fit.rf, data = dat.test )
-                                measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                                WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                             } else {
                                 fit.rf <- randomForest( as.formula("factor(Y)~"%.% concatList(predictors,"+")), dat.train )
                                 pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
@@ -343,9 +348,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                     #fit.mlr <- svyglm( as.formula(f), design=dstrat, family="binomial")
                     #pred.mlr <- predict( fit.mlr, newdata=select(dat.test, -c('Y','y','bstrat','ph2','wt')) ) # Error
                     # option 2 use glm weights, which produces the same point est but model-based p values
-                    fit.mlr <- glm( as.formula(f), dat.train, family=binomial, weights=dat.train$wt)
+                    #fit.mlr <- glm( as.formula(f), dat.train, family=binomial, weights=dat.train$wt)
+                    #pred.mlr <- predict( fit.mlr, newdata=dat.test )
+                    # option 3 use glm without weights
+                    fit.mlr <- glm( as.formula(f), dat.train, family=binomial)
                     pred.mlr <- predict( fit.mlr, newdata=dat.test )
-                    measure_auc( pred.mlr, dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.mlr, label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.mlr <- glm( as.formula(f), dat.train, family=binomial )
                     pred.mlr <- predict( fit.mlr, newdata=dat.test )
@@ -365,9 +373,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                   dat.test.X <- as.matrix(select( dat.test, -c('Y','y','bstrat','ph2','wt') )); dat.test.y <- as.matrix(select( dat.test, 'Y' ))
                   set.seed(123)
                   if(use.w) {
-                    fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
+                    # option 1 fit model with weights
+                    #fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
+                    # option 2 fit model without weights
+                    fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
                     pred.rr <- as.numeric(drop( predict( fit.rr , newx = dat.test.X , s = fit.rr$lambda.min ) ))
-                    measure_auc( pred.rr, dat.test.y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.rr, label=dat.test.y, weight=dat.test$wt))
                   } else {
                     fit.rr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=0 ) # Ridge penalty
                     pred.rr <- as.numeric(drop( predict( fit.rr , newx = dat.test.X , s = fit.rr$lambda.min ) ))
@@ -387,9 +398,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                   dat.test.X <- as.matrix(select( dat.test, -c('Y','y','bstrat','ph2','wt') )); dat.test.y <- as.matrix(select( dat.test, 'Y' ))
                   set.seed(123)
                   if(use.w) {
-                    fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
+                    # option 1 fit model with weights
+                    #fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, weights = dat.train$wt, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
+                    # option 2 fit model without weights
+                    fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
                     pred.lr <- as.numeric(drop( predict( fit.lr , newx = dat.test.X , s = fit.lr$lambda.min ) ))
-                    measure_auc( pred.lr, dat.test.y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.lr, label=dat.test.y, weight=dat.test$wt))
                   } else {
                     fit.lr <- cv.glmnet( x=dat.train.X, y=dat.train.y, family="binomial" , type.measure='auc', nfolds=5, alpha=1 ) # Lasso penalty
                     pred.lr <- as.numeric(drop( predict( fit.lr , newx = dat.test.X , s = fit.lr$lambda.min ) ))
@@ -407,9 +421,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                   dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                   set.seed(123)
                   if(use.w) {
-                    fit.dt <- rpart( as.formula(f), data=dat.train, weights=dat.train$wt )
+                    # option 1 fit model with weights
+                    #fit.dt <- rpart( as.formula(f), data=dat.train, weights=dat.train$wt )
+                    # option 2 fit model without weights
+                    fit.dt <- rpart( as.formula(f), data=dat.train )
                     pred.dt <- predict( fit.dt, newdata=dat.test, type="prob" )
-                    measure_auc( pred.dt[,2], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.dt[,2], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.dt <- rpart( as.formula(f), data=dat.train )
                     pred.dt <- predict( fit.dt, newdata=dat.test, type="prob" )
@@ -427,9 +444,12 @@ res=sapply(seeds, simplify="array", function (seed) {
                   dat.test <-  rbind( data.frame(Y=1, dat.b$case[split$test$case,,drop=F]),       data.frame(Y=0, dat.b$control[split$test$control,,drop=F]) )
                   set.seed(123)
                   if(use.w) {
-                    fit.bg <- ranger( as.formula(f), data=dat.train, case.weights=dat.train$wt, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )
+                    # option 1 fit model with weights
+                    #fit.bg <- ranger( as.formula(f), data=dat.train, case.weights=dat.train$wt, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )
+                    # option 2 fit model without weights
+                    fit.bg <- ranger( as.formula(f), data=dat.train, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )
                     pred.bg <- predict( fit.bg, data = dat.test )# not allow type="prob"
-                    measure_auc( pred.bg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.bg$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.bg <- randomForest( as.formula(f), dat.train, mtry = ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))) )# randomForest does not handle weights
                     pred.bg <- predict( fit.bg, newdata=dat.test, type="prob" )
@@ -451,7 +471,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.ab <- adam2( Y~., data = select(dat.train, -c('y','bstrat','ph2','wt')), size = 100, alg = 'cart' )
                     pred.ab <- predict( fit.ab, newdata=dat.test )
-                    measure_auc( pred.ab, dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.ab, label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.ab <- adam2( Y~., data = select(dat.train, -c('y','bstrat','ph2','wt')), size = 100, alg = 'cart' )
                     pred.ab <- predict( fit.ab, newdata=dat.test )
@@ -476,7 +496,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     fit.ubg <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))),
                                        sample.fraction = (class.dist['1']*2)/sum(class.dist) )
                     pred.ubg <- predict( fit.ubg, data=dat.test )
-                    measure_auc( pred.ubg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.ubg$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.ubg <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train, -c('Y','y','bstrat','ph2','wt'))),
                                        sample.fraction = (class.dist['1']*2)/sum(class.dist) )
@@ -504,7 +524,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.obg <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train.over, -c('Y','y','bstrat','ph2','wt'))) )
                     pred.obg <- predict( fit.obg, data=dat.test )
-                    measure_auc( pred.obg$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.obg$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.obg <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1, mtry=ncol(select(dat.train.over, -c('Y','y','bstrat','ph2','wt'))) )
                     pred.obg <- predict( fit.obg, data=dat.test )
@@ -528,7 +548,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.urf <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, sample.fraction = (class.dist['1']*2)/sum(class.dist) )
                     pred.urf <- predict( fit.urf, data=dat.test )
-                    measure_auc( pred.urf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.urf$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.urf <- ranger( as.formula(f), data=dat.train, case.weights=weights.samp, probability=TRUE, min.node.size=1, sample.fraction = (class.dist['1']*2)/sum(class.dist) )
                     pred.urf <- predict( fit.urf, data=dat.test )
@@ -555,7 +575,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.orf <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1 )
                     pred.orf <- predict( fit.orf, data=dat.test )
-                    measure_auc( pred.orf$predictions[,'1'], dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.orf$predictions[,'1'], label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.orf <- ranger( as.formula(f), data=dat.train.over, probability=TRUE, min.node.size=1 )
                     pred.orf <- predict( fit.orf, data=dat.test )
@@ -577,7 +597,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.rusb <- rus( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart' )
                     pred.rusb <- predict( fit.rusb, newdata = dat.test )
-                    measure_auc( pred.rusb, dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.rusb, label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.rusb <- rus( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart' )
                     pred.rusb <- predict( fit.rusb, newdata = dat.test )
@@ -599,7 +619,7 @@ res=sapply(seeds, simplify="array", function (seed) {
                     # The weights are used to only calculate CV-AUC
                     fit.smoteb <- sbo( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart', over=500 )
                     pred.smoteb <- predict( fit.smoteb, newdata = dat.test )
-                    measure_auc( pred.smoteb, dat.test$Y, weights = dat.test$wt )$point_est
+                    WeightedAUC(WeightedROC(guess=pred.smoteb, label=dat.test$Y, weight=dat.test$wt))
                   } else {
                     fit.smoteb <- sbo( Y~., data=select(dat.train, -c('y','bstrat','ph2','wt')), size=100, alg='cart', over=500 )
                     pred.smoteb <- predict( fit.smoteb, newdata = dat.test )
