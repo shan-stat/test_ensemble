@@ -1,3 +1,6 @@
+source('helper_cvauc.R')
+source('helper_rf_hvtn.R')
+
 ### For Stacking ###
 setwd('/Users/shan/Desktop/Paper/YFong/2.HVTN/Code/caretEnsemble_modified/R')
 source('helper_functions.R')
