@@ -229,7 +229,7 @@ get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, min.node.size = 1 )
       pred.rf <- predict( fit.rf, data = dat.test )
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -247,7 +247,7 @@ get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','
       fit.rf <- ranger( factor(Y)~., data = dat.train, probability = TRUE, replace = TRUE, case.weights = weights.sampling, 
                         sample.fraction = 40/120, keep.inbag = TRUE, min.node.size = 1 )
       pred.rf <- predict( fit.rf, data = dat.test)
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -266,7 +266,7 @@ get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train.mod, probability = TRUE, replace = TRUE, case.weights = weights.train, min.node.size = 1 )
       pred.rf <- predict( fit.rf, data = dat.test)
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -284,7 +284,7 @@ get.rf.cvauc = function(dat, cv.scheme, obsWeights, method=c('sRF','sRF_under','
       res.tunerf <- tuneRanger( rf.task, measure = list(auc), num.trees = 500, iters.warmup = 50, iters = 100, save.file.path = NULL, 
                                 tune.parameters = c("mtry", "min.node.size","sample.fraction"), parameters = list(replace = TRUE) )
       pred.tunerf <- predict( res.tunerf$model, newdata = dat.test )
-      measure_auc( pred.tunerf$data$prob.1, dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.tunerf$data$prob.1, label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -359,7 +359,7 @@ get.st.cvauc = function(dat, cv.scheme, obsWeights, var.index, method, seed=1){
     pred.st <- method$computePred(predY = pred.test, coef = res.st.fit$coef)
   
     # Predict stacking on test set #
-    measure_auc( pred.st, dat.test$Y, weights = weights.test )$point_est
+    WeightedAUC(WeightedROC(guess=pred.st, label=dat.test$Y, weight=weights.test))
   }, mc.cores = 4 )
   cv.aucs <- unlist( cv.aucs )
   
