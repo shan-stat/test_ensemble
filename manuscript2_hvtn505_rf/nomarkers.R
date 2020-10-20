@@ -1,3 +1,6 @@
+source('helper_cvauc.R')
+source('helper_rf_hvtn.R')
+
 # 1. Re-define function for only using baseline variables #
 no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tCV-AUC'), method=c('nodesize','mtry','sampsize'), value, seed=1){
   
@@ -15,7 +18,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, min.node.size = value )
       pred.rf <- predict( fit.rf, data = dat.train )
-      measure_auc( pred.rf$predictions[,'1'], dat.train$Y, weights = weights.train )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.train$Y, weight=weights.train))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -30,7 +33,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE,  min.node.size = value )
       pred.rf <- predict( fit.rf, data = dat.test )
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -46,7 +49,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, min.node.size = 1, mtry = value )
       pred.rf <- predict( fit.rf, data = dat.train)
-      measure_auc( pred.rf$predictions[,'1'], dat.train$Y, weights = weights.train )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.train$Y, weight=weights.train))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -61,7 +64,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       set.seed( 123 )
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, min.node.size = 1, mtry = value )
       pred.rf <- predict( fit.rf, data = dat.test )
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -78,7 +81,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, 
                         min.node.size = 1, sample.fraction = value )
       pred.rf <- predict( fit.rf, data = dat.train )
-      measure_auc( pred.rf$predictions[,'1'], dat.train$Y, weights = weights.train )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.train$Y, weight=weights.train))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -94,7 +97,7 @@ no.markers.cvauc = function(dat, cv.scheme, obsWeights, measure=c('trCV-AUC','tC
       fit.rf <- ranger( factor(Y)~., data = dat.train, case.weights = weights.train, probability = TRUE, 
                         min.node.size = 1, sample.fraction = value )
       pred.rf <- predict( fit.rf, data = dat.test )
-      measure_auc( pred.rf$predictions[,'1'], dat.test$Y, weights = weights.test )$point_est
+      WeightedAUC(WeightedROC(guess=pred.rf$predictions[,'1'], label=dat.test$Y, weight=weights.test))
     }, mc.cores = 4 )
     cv.aucs <- unlist( cv.aucs )
   }
@@ -155,7 +158,7 @@ for( i in 1:length(mtry.can) ){
     print(j)
     seed <- j
     res.temp <- no.markers.cvauc( dat = dat.X, cv.scheme = '5fold', obsWeights = weights_vaccine, 
-                                  measure = 'trCV-AUC', method = 'mtry', value = mtry.can[i], seed = seed ) 
+                                  measure = 'tCV-AUC', method = 'mtry', value = mtry.can[i], seed = seed ) 
     mtry.mat[j, i] <- mean( res.temp )
   }
 }
@@ -200,7 +203,7 @@ for( i in 1:length(sampsize.can) ){
   }
 }
 apply(spsize.mat, 2, mean)
-write.table( spsize.mat, '/Users/shan/Desktop/Paper/YFong/2.HVTN/Result/spsize_tauc.txt', col.names = TRUE, sep =',' )
+write.table( spsize.mat, '/Users/shan/Desktop/Paper/YFong/2.HVTN/Result/sampsize_tauc.txt', col.names = TRUE, sep =',' )
 
 
 
