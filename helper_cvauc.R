@@ -109,14 +109,20 @@ sim.rv144=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL) {
         dat$ph2=ifelse(dat$y==1, 1, 0)
         # inverse sampling prob as wt
         dat$wt=1
+        # fpc: the number of observations in each stratum of the population
+        dat$fpc=1
         # sample 1:5 case:control ratio
         for (k in 1:max(dat$bstrat)) {
             dat$ph2[sample(which(dat$bstrat==k & dat$y==0), 5*tab[k,2])]=1
             dat$wt [       which(dat$bstrat==k & dat$y==0)]=tab[k,1]/(5*tab[k,2])
+            dat$fpc[       which(dat$bstrat==k)]=table(bstrat)[k]
         }
     }
     
+    # for stratified independent sampling without replacement
     dat[dat$ph2==1,]
+    # for phase-two sampling scheme
+    #dat
 }
 
 #seed=1; 
