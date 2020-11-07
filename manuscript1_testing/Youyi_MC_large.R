@@ -110,15 +110,18 @@ res=sapply(seeds, simplify="array", function (seed) {
     # perform testing
     if (proj=="BH") {
         pvals=sapply (1:p, function(i) {
+            set.seed(123)
             if(!fit2ph) {
                 fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
             } else {
-                # option 1 use survey package
-                dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat)
+                # option 1: use survey package
+                #dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat) # stratified independent sampling with replacement
+                dstrat<-svydesign(id=~1,strata=~bstrat, data=dat, fpc=~fpc) # stratified independent sampling without replacement
                 fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-                # option 2 use glm with weights
-                #fit=glm(as.formula("y~z1+z2+x"%.%i), dat, weights=dat$wt, family=binomial)
-                # option 3 use glm without weights
+                # option 2: use survey package (phase-two sampling scheme)
+                #dstrat<-twophase(id=list(~1,~1), strata=list(NULL,~bstrat), subset=~ph2, data=dat, fpc=list(NULL,~fpc))
+                #fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
+                # option 3: use glm without weights
                 #fit=glm(as.formula("y~z1+z2+x"%.%i), dat, family=binomial)
             }
             last(summary(fit)$coef)
@@ -166,14 +169,18 @@ res=sapply(seeds, simplify="array", function (seed) {
             if(startsWith(proj,"perm_min")) {
                 dat.train=rbind(data.frame(y=1,dat.b$case), data.frame(y=0,dat.b$control))
                 pvals=sapply (1:p, function(i) {
+                    set.seed(123)
                     if(!use.w) {
+                        # option 3: use glm without weights
                         fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
                     } else {
-                        # option 1 use survey package
-                        dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train)
+                        # option 1: use survey package
+                        #dstrat<-svydesign(id=~1,strata=~bstrat, weights=~wt, data=dat.train) # stratified independent sampling with replacement
+                        dstrat<-svydesign(id=~1,strata=~bstrat, data=dat.train, fpc=~fpc) # stratified independent sampling without replacement
                         fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-                        # option 2 use glm weights, which produces the same point est but model-based p values
-                        #fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial, weights=dat.train$wt)
+                        # option 2: use survey package (phase-two sampling scheme)
+                        #dstrat<-twophase(id=list(~1,~1), strata=list(NULL,~bstrat), subset=~ph2, data=dat.train, fpc=list(NULL,~fpc))
+                        #fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
                     }
                     last(summary(fit)$coef)                    
                 })
@@ -672,7 +679,7 @@ res=sapply(seeds, simplify="array", function (seed) {
         if(make.plot) {plot(density(ref.distr), main=seed); abline(v=est, lty=2); abline(v=0.5)}
         
         # get pvalue
-        if(proj=="perm_min") {
+        if(startsWith(proj,"perm_min")) {
             p.value=mean(ref.distr<est)
         } else {
             #p.value=ifelse(est>0.5, mean(ref.distr>est)+mean(ref.distr<1-est), mean(ref.distr<est)+mean(ref.distr>1-est))            
