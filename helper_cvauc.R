@@ -118,7 +118,15 @@ sim.rv144=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL) {
             dat$fpc[       which(dat$bstrat==k)]=table(bstrat)[k]
         }
     }
-    
+  
+    # remove empty strata for svyglm
+    if(any(table(bstrat, y)[,'1']==0)){
+      ept <- unname(which(table(bstrat, y)[,'1']==0))
+      for(i in 1:length(ept)){
+        dat <- subset(dat, bstrat!=ept[i])
+      }
+    }
+  
     # for stratified independent sampling without replacement
     dat[dat$ph2==1,]
     # for phase-two sampling scheme
@@ -552,4 +560,4 @@ lgb.normalizedgini = function(preds, dtrain){
   actual = getinfo(dtrain, "label")
   score  = NormalizedGini(preds,actual)
   return(list(name = "gini", value = score, higher_better = TRUE))
-}                
+}
