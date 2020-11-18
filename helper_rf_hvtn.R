@@ -1,7 +1,7 @@
 # Packages #
 library(parallel); library(foreach); library(doParallel)
 library(aucm); library(cvAUC); library(MASS)
-library(HVTN505); library(kyotil); library(dplyr); library(vimp)
+library(HVTN505); library(kyotil); library(dplyr); library(vimp); library(WeightedROC)
 library(glmnet); library(tuneRanger); library(caret)
 library(nnls); library(quadprog); library(nloptr)
 
