@@ -7,33 +7,6 @@ library(nnls); library(quadprog); library(nloptr)
 
 
 
-# k-fold cross-validation (CV) #
-get.kfold.splits=function(dat, k, seed) {
-  # save rng state before set.seed in order to restore before exiting this function
-  save.seed <- try(get(".Random.seed", .GlobalEnv), silent=TRUE) 
-  if (class(save.seed)=="try-error") {set.seed(1); save.seed <- get(".Random.seed", .GlobalEnv) }      
-  set.seed(seed)    
-  
-  n0=nrow(dat$control)
-  n1=nrow(dat$case)
-  
-  # k-fold CV #
-  training.subsets=list()
-  test.subsets=list()
-  tmp1=sample(1:n1)
-  tmp0=sample(1:n0)
-  splits=list()
-  for (ki in 1:k) {
-    splits[[ki]]=list(training=list(case=tmp1[(1:n1)%%k!=ki-1], control=tmp0[(1:n0)%%k!=ki-1]),
-                      test=list(case=tmp1[(1:n1)%%k==ki-1], control=tmp0[(1:n0)%%k==ki-1]))
-  }
-  splits
-    
-  # restore rng state 
-  assign(".Random.seed", save.seed, .GlobalEnv)     
-  splits
-}
-
 # Lasso variable screening #
 screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X)), alpha = 1) {
   set.seed(123)
@@ -118,7 +91,7 @@ get_nms_group_all_antigens <- function(X, assays, assays_to_exclude = "") {
 get.rf.cvauc = function(dat, obsWeights, method=c('RF','RF_under','RF_over','tRF'), ipw, seed=1){
   
   # 5-fold CV #
-  splits <- get.5fold.splits(dat, seed)
+  splits <- get.kfold.splits(dat, k=5, seed)
   
   # Standard random forest (RF) #
   if( method == 'RF' ){
@@ -201,7 +174,7 @@ get.rf.cvauc = function(dat, obsWeights, method=c('RF','RF_under','RF_over','tRF
 get.glm.cvauc = function(dat, obsWeights, ipw, seed=1){
   
   # 5-fold CV #
-  splits <- get.5fold.splits(dat, seed)
+  splits <- get.kfold.splits(dat, k=5, seed)
   
   # glm #
   cv.aucs <-  mclapply( splits, function(split){
@@ -227,7 +200,7 @@ get.glm.cvauc = function(dat, obsWeights, ipw, seed=1){
 get.st.cvauc = function(dat, obsWeights, var.index, method, seed=1){
   
   # Outer layer: 5-fold CV #
-  splits <- get.5fold.splits(dat, seed)
+  splits <- get.kfold.splits(dat, k=5, seed)
   
   # Inner layer: 10-fold CV (fitting learners and obtaining out-of-sample predictions) #
   my_control <- trainControl(
