@@ -7,8 +7,8 @@ library(nnls); library(quadprog); library(nloptr)
 
 
 
-# 5-fold cross-validation (CV) #
-get.5fold.splits=function(dat, seed) {
+# k-fold cross-validation (CV) #
+get.kfold.splits=function(dat, k, seed) {
   # save rng state before set.seed in order to restore before exiting this function
   save.seed <- try(get(".Random.seed", .GlobalEnv), silent=TRUE) 
   if (class(save.seed)=="try-error") {set.seed(1); save.seed <- get(".Random.seed", .GlobalEnv) }      
@@ -17,15 +17,15 @@ get.5fold.splits=function(dat, seed) {
   n0=nrow(dat$control)
   n1=nrow(dat$case)
   
-  # 5-fold CV #
+  # k-fold CV #
   training.subsets=list()
   test.subsets=list()
   tmp1=sample(1:n1)
   tmp0=sample(1:n0)
   splits=list()
-  for (ki in 1:5) {
-    splits[[ki]]=list(training=list(case=tmp1[(1:n1)%%5!=ki-1], control=tmp0[(1:n0)%%5!=ki-1]),
-                      test=list(case=tmp1[(1:n1)%%5==ki-1], control=tmp0[(1:n0)%%5==ki-1]))
+  for (ki in 1:k) {
+    splits[[ki]]=list(training=list(case=tmp1[(1:n1)%%k!=ki-1], control=tmp0[(1:n0)%%k!=ki-1]),
+                      test=list(case=tmp1[(1:n1)%%k==ki-1], control=tmp0[(1:n0)%%k==ki-1]))
   }
   splits
     
