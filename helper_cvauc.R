@@ -1,4 +1,4 @@
-# Packages #
+# Required packages #
 library(parallel); library(foreach); library(doParallel)
 library(MASS); library(e1071); library(stats)
 library(kyotil); library(aucm); library(cvAUC)
@@ -144,7 +144,6 @@ sim.rv144=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL) {
 
 
 
-
 # simulate a dataset to mimic the MTCT dataset
 # 50 variables
 # 1 signal
@@ -184,8 +183,6 @@ sim.mtct=function(n1, n0, seed, alpha, beta, beta.z.1=0, beta.z.2=0) {
   names(dat)=c("y","z1","z2","x"%.%1:50)
   dat
 }
-
-
 
 
 sim.1=function(n1, n0, seed, sep=0) {
@@ -269,217 +266,6 @@ get.splits=function(dat, cv.scheme=c("5fold","random5fold","LPO","nocv"), seed) 
     splits
 }
 
-# Getting CV-AUC (Likelihood-based function, machine learning) #
-get.cv.auc <- function(dat, cv.scheme, method = c('MLR','RR','LR','DT','BG','RF','AB',
-                                                  'UBG','OBG','SMOTEBG','URF','ORF','RUSB','SMOTEB'), numCores, seed=1){
-  # Split data for k-fold CV #
-  splits <- get.splits(dat, cv.scheme, seed)
-  
-  # MLR : Multiple Logistic Regression #
-  if( method == 'MLR' ){
-    cv.aucs <-  mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.mlr <- glm( factor(Y)~., dat.train, family=binomial ) 
-      pred.mlr <- predict( fit.mlr, newdata=dat.test )
-      fast.auc( pred.mlr, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # RR : Ridge Regression #
-  if( method == 'RR' ){
-    cv.aucs <-  mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train.X <- as.matrix(dat.train[, colnames(dat.train) != 'Y']) ; dat.train.y <- as.matrix(dat.train[,'Y'])
-      dat.test.X <- as.matrix(dat.test[,colnames(dat.test) != 'Y']) ; dat.test.y <- as.matrix(dat.test[,'Y'])
-      set.seed(123)
-      res.rr <- cv.glmnet( x = dat.train.X, y =  dat.train.y, family = "binomial" , type.measure = 'auc', nfolds = 5, alpha = 0 ) # Ridge penalty
-      pred.rr <- as.numeric(drop( predict( res.rr , newx = dat.test.X , s = res.rr$lambda.min ) ))
-      fast.auc( pred.rr, dat.test.y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # LR : Lasso Regression #
-  if( method == 'LR' ){
-    cv.aucs <-  mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train.X <- as.matrix(dat.train[, colnames(dat.train) != 'Y']) ; dat.train.y <- as.matrix(dat.train[,'Y'])
-      dat.test.X <- as.matrix(dat.test[,colnames(dat.test) != 'Y']) ; dat.test.y <- as.matrix(dat.test[,'Y'])
-      set.seed(123)
-      res.lr <- cv.glmnet( x = dat.train.X, y =  dat.train.y, family = "binomial" , type.measure = 'auc', nfolds = 5, alpha = 1 ) # Lasso penalty
-      pred.lr <- as.numeric(drop( predict( res.lr , newx = dat.test.X , s = res.lr$lambda.min ) ))
-      fast.auc( pred.lr, dat.test.y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # DT : Decision Tree #
-  if( method == 'DT' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.dt <- rpart( factor(Y)~., dat.train )
-      pred.dt <- predict( fit.dt, newdata=dat.test, type="prob" )
-      fast.auc( pred.dt[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # BG : Bagging #
-  if( method == 'BG'){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.bg <- randomForest( factor(Y)~., dat.train, mtry=( ncol(dat.train)-1 ) )
-      pred.bg <- predict( fit.bg, newdata=dat.test, type="prob" )
-      fast.auc( pred.bg[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # RF : Random Forest #
-  if( method == 'RF' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.rf <- randomForest( factor(Y)~., dat.train )
-      pred.rf <- predict( fit.rf, newdata=dat.test, type="prob" )
-      fast.auc( pred.rf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # AB : AdaBoost.M2 #
-  if( method == 'AB' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train$Y <- factor( dat.train$Y )
-      set.seed(123)
-      fit.ab <- adam2( Y ~., data = dat.train, size = 100, alg = 'cart' )
-      pred.ab <- predict( fit.ab, newdata=dat.test )
-      fast.auc( pred.ab, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # UBG : UnderBagging #
-  if( method == 'UBG' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.ubg <- randomForest( factor(Y)~., dat.train, mtry = ncol(dat.train)-1, strata = dat.train$Y, 
-                               sampsize = rep(sum(dat.train$Y==1), 2) )
-      pred.ubg <- predict( fit.ubg, newdata=dat.test, type="prob" )
-      fast.auc( pred.ubg[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # OBG : OverBagging #
-  if( method == 'OBG' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      idx1 <- sample( 1:sum(dat.train$Y==1), sum(dat.train$Y==0), replace = TRUE ) # Oversampling minority class
-      dat.temp <- list( case = subset(dat.train, Y==1, select=-Y), control = subset(dat.train, Y==0, select=-Y) )
-      dat.train.mod <- rbind( data.frame(Y=1, dat.temp$case[idx1,,drop=F]),   data.frame(Y=0, dat.temp$control) )
-      fit.obg <- randomForest( factor(Y)~., dat.train.mod, mtry = ncol(dat.train.mod)-1, strata = dat.train.mod$Y, 
-                               sampsize = rep(sum(dat.train.mod$Y==1), 2) )
-      pred.obg <- predict( fit.obg, newdata=dat.test, type="prob" )
-      fast.auc( pred.obg[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # SMOTEBG : SMOTEBagging #
-  if( method == 'SMOTEBG' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train$Y <- as.factor( dat.train$Y )
-      set.seed(123)
-      fit.smotebg <- sbag( Y ~ ., data = dat.train, size = 100, alg = 'cart' )
-      pred.smotebg <- predict( fit.smotebg, newdata = dat.test )
-      fast.auc( pred.smotebg, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # URF : UnderRandomForest #
-  if( method == 'URF' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      set.seed(123)
-      fit.urf <- randomForest( factor(Y)~., dat.train, strata = dat.train$Y, sampsize = rep(sum(dat.train$Y==1), 2) )
-      pred.urf <- predict( fit.urf, newdata=dat.test, type="prob" )
-      fast.auc( pred.urf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # ORF : OverRandomForest #
-  if( method == 'ORF' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      
-      # Oversampling minority class
-      set.seed(123)
-      idx1 <- sample( 1:sum(dat.train$Y==1), sum(dat.train$Y==0), replace = TRUE ) 
-      dat.temp <- list( case = subset(dat.train, Y==1, select=-Y), control = subset(dat.train, Y==0, select=-Y) )
-      dat.train.mod <- rbind( data.frame(Y=1, dat.temp$case[idx1,,drop=F]),   data.frame(Y=0, dat.temp$control) )
-      
-      set.seed(123)
-      fit.orf <- randomForest( factor(Y)~., dat.train.mod, strata = dat.train.mod$Y, sampsize = rep(sum(dat.train.mod$Y==1), 2) )
-      pred.orf <- predict( fit.orf, newdata=dat.test, type="prob" )
-      fast.auc( pred.orf[,2], dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # RUSB : Random Under Sampling Boosting #
-  if( method == 'RUSB' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train$Y <- as.factor( dat.train$Y )
-      set.seed(123)
-      fit.rusb <- rus( Y ~ ., data = dat.train, size = 100, alg = 'cart', ir = 1 )
-      pred.rusb <- predict( fit.rusb, newdata = dat.test )
-      fast.auc( pred.rusb, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  # SMOTEB : SMOTEBoost #
-  if( method == 'SMOTEB' ){
-    cv.aucs <- mclapply( splits, function(split){
-      dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
-      dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
-      dat.train$Y <- as.factor( dat.train$Y )
-      set.seed(123)
-      fit.smoteb <- sbo( Y ~ ., data = dat.train, size = 100, alg = 'cart', over = 500 )
-      pred.smoteb <- predict( fit.smoteb, newdata = dat.test )
-      fast.auc( pred.smoteb, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }, mc.cores = numCores )
-    cv.aucs <- unlist( cv.aucs )
-  }
-  
-  mean(cv.aucs)
-}
-
 # LeDell's CI #
 get.cv.auc.LeDell=function(dat, cv.scheme, seed) {
     splits=get.splits(dat, cv.scheme, seed)
@@ -496,65 +282,6 @@ get.cv.auc.LeDell=function(dat, cv.scheme, seed) {
     out <- ci.cvAUC(scores, labels)    
     c(est=out$cvAUC, lb=out$ci[1], ub=out$ci[2])
 }
-
-# Wald test / LRT #
-get.pvalue.test <- function( dat ){
-  set.seed( 123 )
-  null.model <- glm( factor(y) ~ 1, dat, family=binomial ) # without covariates
-  
-  # Generating result vector #
-  pvalues.wald <- c()
-  pvalues.lrt <- c()
-  for( i in 1:(ncol(dat)-1) ){
-    dat.temp <- dat[, c('y',paste('x',i,sep=''))] # without covariates
-    set.seed(123)
-    fit.model <- glm( factor(y) ~ ., dat.temp, family=binomial ) 
-    res.wald <- waldtest( null.model, fit.model )
-    pvalues.wald[i] <- res.wald$'Pr(>F)'[2]
-    res.lrt <- lrtest( null.model, fit.model )
-    pvalues.lrt[i] <- res.lrt$'Pr(>Chisq)'[2]
-  }
-    
-  c(min(pvalues.wald), min(pvalues.lrt))
-}
-
-# CV-AUC for Univariate Logistic Regression (for Section 3.1)#
-get.cv.auc.ULR <- function( dat, cv.scheme = c('5fold','nocv'), numCores = numCores, seed=1 ){
-  # CV-AUC #
-  if( cv.scheme == '5fold' ){
-    # Split data for k-fold CV #
-    splits <- get.splits(dat, cv.scheme, seed = seed)
-    # Generating result vector #
-    cvaucs <- c()
-    for( i in 1:ncol(dat$case) ){
-      cv.aucs <-  mclapply( splits, function(split){
-        dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case, paste('x',i,sep=''),drop=F]),   data.frame(Y=0, dat$control[split$training$control, paste('x',i,sep=''),drop=F]) )
-        dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case, paste('x',i,sep=''),drop=F]),       data.frame(Y=0, dat$control[split$test$control, paste('x',i,sep=''),drop=F]) )
-        set.seed(123)
-        fit.lr <- glm( factor(Y) ~ ., dat.train, family=binomial ) 
-        pred.lr <- predict( fit.lr, newdata=dat.test )
-        fast.auc( pred.lr, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-      }, mc.cores = numCores )
-      cvaucs[i] <- mean( unlist( cv.aucs ) )
-    }
-  } 
-  
-  # AUC #
-  if( cv.scheme == 'nocv' ){
-    # Generating result vector #
-    cvaucs <- c()
-    for( i in 1:ncol(dat$case) ){
-      dat.train <- rbind( data.frame(Y=1, dat$case[,c(paste('x',i,sep='')),drop=F]), data.frame(Y=0, dat$control[,c(paste('x',i,sep='')),drop=F]) )
-      set.seed(123)
-      fit.lr <- glm( factor(Y) ~ ., dat.train, family=binomial ) 
-      pred.lr <- predict( fit.lr, newdata=dat.train )
-      cvaucs[i] <- fast.auc( pred.lr, dat.train$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
-    }
-  }
-    
-  max(cvaucs)
-}
-
 
 lgb.normalizedgini = function(preds, dtrain){
   actual = getinfo(dtrain, "label")
