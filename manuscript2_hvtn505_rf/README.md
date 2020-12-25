@@ -21,6 +21,6 @@ Step 1) Importing HVTN 505 dataset
 - ii) Install R package HVTN505 using the code "devtools::install_local("HVTN505_2019-4-25.tar.gz")".
 
 Step 2) Conducting Experiments
-- Codes in "2-1. Random forest (RF)" generate all random forest-based results in Table 1, 2, and 3 in the manuscript. You can specify whether clinical covariates are included or whether lasso variable screening is applied.
-- Codes in "2-2. Generalized linear models (GLM)" generates all generalized linear models-based results in Table 3 and supplemental table. You can specify whether clinical covariates are included or whether lasso variable screening is applied.
+- Codes in "2-1. Random forest (RF)" generate all random forest-based results in Table 1, 2, and 3 in the manuscript. You can customize whether clinical covariates are included or whether lasso variable screening is applied.
+- Codes in "2-2. Generalized linear models (GLM)" generate all generalized linear models-based results in Table 3 and Table A.1 (supplemantary material). You can customize whether clinical covariates are included or whether lasso variable screening is applied.
 - Codes in "2-3. Stacking (RF + GLM)" generate all stacking results in Table 4. To fit stacking, you should first import five R files that are "helper_functions.R", "caretList.R", "caretEnsemble.R", "caretStack.R", and "method.R". This five files come from the *caretEnsemble* and the *SuperLearner* R packages (Deane-Mayer and Knowles, 2016), (Polley et al. 2019).
