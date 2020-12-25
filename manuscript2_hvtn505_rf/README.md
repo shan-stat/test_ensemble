@@ -7,7 +7,7 @@ This R file contains several helper functions that help to easly get results.
 
 ### Function list
 - *screen_lasso*: implements lasso variable screening.
-- *screen.dat.index*: generates a dataset and a screened variable index. Users can choose a specific marker set and lasso variable screening.
+- *screen.dat.index*: generates a dataset and a screened variable index. Users can specify a candidate marker set and whether lasso variable screening is applied.
 - *get_nms_group_all_antigens*: helps to specifify variables depending on assay type.
 - *get.rf.cvauc*: fits different types of random forests(standard random forest (RF), RF with under-sampling (RF_under), RF with over-sampling (RF_over), and tuned RF (tRF)). Users can specify inver sampling probability weights (ipw) in model training.
 - *get.glm.cvauc*: fits generalized linear models. Users can specify inver sampling probability weights (ipw) in model training.
