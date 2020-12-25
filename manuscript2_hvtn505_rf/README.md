@@ -18,7 +18,7 @@ This R file containes codes for all experiments in the manuscript.
 
 Step 1) Import HVTN 505 dataset
 - i) First download the HVTN 505 dataset at https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view
-- ii) install R package HVTN505 using the code "devtools::install_local("HVTN505_2019-4-25.tar.gz")".
+- ii) Install R package HVTN505 using the code "devtools::install_local("HVTN505_2019-4-25.tar.gz")".
 
 Step 2) Experiments
 - Codes in "2-1. Random forest (RF)" generate all random forest-based results in Table 1, 2, and 3 in the manuscript. You can specify whether clinical covariates are included or whether lasso variable screening is applied.
