@@ -248,10 +248,11 @@ get.st.cvauc = function(dat, obsWeights, var.index, method, seed=1){
     pred.test <- predict.caretList(model_list, newdata=dat.test)
     pred.st <- method$computePred(predY = pred.test, coef = res.st.fit$coef)
   
-    # Predict stacking on test set #
-    WeightedAUC(WeightedROC(guess=pred.st, label=dat.test$Y, weight=weights.test))
+    # Calculating CV-AUC #
+    est.cvauc <- WeightedAUC(WeightedROC(guess=pred.st, label=dat.test$Y, weight=weights.test))
+    # Calculating Pearson correlation coefficient #
+    est.corr <- cor(pred.cv$preds[,1], pred.cv$preds[,2])
+    c(est.cvauc=est.cvauc, est.corr=est.corr)
   }, mc.cores = 4 )
-  cv.aucs <- unlist( cv.aucs )
-  
   cv.aucs
 }
