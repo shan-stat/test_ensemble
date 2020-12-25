@@ -11,7 +11,7 @@ This R file contains several helper functions that help to easly get results.
 - *get_nms_group_all_antigens*: generates variable index by an assay type.
 - *get.rf.cvauc*: fits different types of random forests(standard random forest (RF), RF with under-sampling (RF_under), RF with over-sampling (RF_over), and tuned RF (tRF)). Users can specify inver sampling probability weighting (ipw).
 - *get.glm.cvauc*: fits generalized linear models. Users can specify inver sampling probability weighting (ipw).
-- *get.st.cvauc*: fits stacking. 
+- *get.st.cvauc*: fits stacking that is based on random forests and generalized linear models. 
 
 ## ExpeRF505.R
 This R file conducts all experiments in the manuscript.
