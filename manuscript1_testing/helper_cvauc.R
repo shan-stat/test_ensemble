@@ -266,6 +266,25 @@ get.splits=function(dat, cv.scheme=c("5fold","random5fold","LPO","nocv"), seed) 
     splits
 }
 
+# CV-AUC using GLM #
+get.cv.auc=function(dat, cv.scheme, seed=1){
+  
+  # k-fold CV #
+  splits <- get.splits(dat, cv.scheme, seed)
+  
+  # CV-AUC using glm #
+  cv.aucs <-  mclapply( splits, function(split){
+    dat.train <- rbind( data.frame(Y=1, dat$case[split$training$case,,drop=F]),   data.frame(Y=0, dat$control[split$training$control,,drop=F]) )
+    dat.test <- rbind( data.frame(Y=1, dat$case[split$test$case,,drop=F]),       data.frame(Y=0, dat$control[split$test$control,,drop=F]) )
+    set.seed(123)
+    fit.mlr <- glm( factor(Y)~., dat.train, family=binomial ) 
+    pred.mlr <- predict( fit.mlr, newdata=dat.test )
+    fast.auc( pred.mlr, dat.test$Y, reverse.sign.if.nece = FALSE, quiet = TRUE )
+  }, mc.cores = 4 )
+  cv.aucs <- unlist( cv.aucs )
+  mean(cv.aucs)
+}
+
 # LeDell's CI #
 get.cv.auc.LeDell=function(dat, cv.scheme, seed) {
     splits=get.splits(dat, cv.scheme, seed)
