@@ -19,7 +19,7 @@ screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X)), alpha = 1) {
   return(vars)
 }
 
-# Imporing screened data and screened variable index #
+# Importing screened data and screened variable index #
 screen.dat.index <- function(Y, X, X_markers, fit.set = c('no','antibody','tcell','all'),
                              screen.dat.method = c('no','lasso'), screen.index.method = c('no','lasso'), obsWeights){
   
