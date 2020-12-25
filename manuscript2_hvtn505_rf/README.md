@@ -14,7 +14,7 @@ This R file contains several helper functions that help to easly get results.
 - *get.st.cvauc*: fits stacking that is based on random forests and generalized linear models. 
 
 ## ExpeRF505.R
-This R file conducts all experiments in the manuscript.
+This R file containes codes for all experiments in the manuscript.
 
 Step 1) Import HVTN 505 dataset
 - i) First download the HVTN 505 dataset at https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view
