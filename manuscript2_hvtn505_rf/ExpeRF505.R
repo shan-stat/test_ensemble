@@ -122,7 +122,7 @@ source('method.R')
 dat.X <- screen.dat.index(Y=Y_vaccine, X=X_vaccine, X_markers=X_markers, obsWeights=weights_vaccine,
                           fit.set='all', screen.dat.method='no', screen.index.method='no')$dat
 
-# Specifying screened variables  #
+# Specifying screened variables index #
 # For all markers #
 screen.var.all <- screen.dat.index(Y=Y_vaccine, X=X_vaccine, X_markers=X_markers, obsWeights=weights_vaccine,
                                    fit.set='all', screen.dat.method='lasso', screen.index.method='lasso')$screen.index.var
