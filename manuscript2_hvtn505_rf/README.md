@@ -13,3 +13,11 @@ This R file contains several helper functions that help to easly get results.
 - *get.glm.cvauc*: fits generalized linear models. Users can specify inver sampling probability weights (ipw) in model training.
 - *get.st.cvauc*: fits stacking. 
 
+## ExpeRF505.R
+This R file conducts all experiments in the manuscript.
+
+Step 1) Import HVTN 505 dataset
+- i) First download the HVTN 505 dataset at https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view
+- ii) install R package HVTN505 using the code "devtools::install_local("HVTN505_2019-4-25.tar.gz")".
+
+Step 2) 
