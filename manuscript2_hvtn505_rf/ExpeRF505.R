@@ -5,8 +5,8 @@ source('helper_rf_hvtn.R')
 
 
 ##### 1. Import HVTN505 dataset ######
-# Step 1) download "HVTN505_2019-4-25.tar.gz" file at https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view
-# Step 2) install R package HVTN505 using "devtools::install_local("HVTN505_2019-4-25.tar.gz")"
+# 1-1) download "HVTN505_2019-4-25.tar.gz" file at https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view
+# 1-2) install R package HVTN505 using "devtools::install_local("HVTN505_2019-4-25.tar.gz")"
 data( 'dat.505', package = 'HVTN505' )
 suppressWarnings( data( 'var.super', package = 'HVTN505' ) )
 
@@ -36,6 +36,7 @@ X_vaccine <- vaccinees %>% select( -Y, -weights )
 
 
 
+##### 2. Experiments ######
 ##### 2-1. Random forest (RF) #####
 # Input values #
 can.set <- c('no','antibody','tcell','all') # candidate set: (1) no markers, (2) antibody markers, (3) t cell markers, (4) all markers
