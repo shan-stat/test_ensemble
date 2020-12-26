@@ -1,5 +1,5 @@
 ##### Import helper functions #####
-setwd("set your local directory where helper_rf_hvtn.R file is located")
+# be sure that helper_rf_hvtn.R file is in the working directory
 source('helper_rf_hvtn.R')
 
 
