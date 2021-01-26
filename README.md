@@ -18,7 +18,7 @@ This R file contains several helper functions that help reproduce results easily
 This R file contains codes for experiments in Section 2.
 
 Step 1) Setting process arguments
-- You can set conditions of the experiment using arguments of sim.setting, basic.cv.setting, and proj. The detailed description is in R file.
+- You can set conditions of the experiment using the arguments of sim.setting, basic.cv.setting, and proj. The detailed description is in R file.
 - To make Figure 1 in the manuscript, you can set the make.plot argument with TRUE.
 
 Step 2) Experiments
@@ -30,7 +30,7 @@ Step 2) Experiments
 This R file contains codes for experiments in Section 3.
 
 Step 1) Setting process arguments
-- You can set conditions of the experiment using arguments of sim.setting, fit.setting, proj, and ipw. The detailed description is in R file.
+- You can set conditions of the experiment using the arguments of sim.setting, fit.setting, proj, and ipw. The detailed description is in R file.
 
 Step 2) Experiments
 - Codes in "2-1. Fitting tests" are used for fitting all of tests listed in Section 2 in the manuscript. These codes are also used for results in Table 4 in the manuscript.
