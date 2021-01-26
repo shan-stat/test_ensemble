@@ -59,7 +59,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     dat=sim.1( n1 = n1, n0 = n0, seed = seed, sep = sep )
   } else stop ("wrong sim.model")
   
-  # Comparison of CV schemes #
+  # 2-1. Comparison of CV schemes #
   if(startsWith(proj,"cv")){
     if(proj != 'cv_10x5fold'){
       # LPO, 5fold, 50xRandom4:1 #
@@ -77,7 +77,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     out=c(est=est.cvauc)
   } 
   
-  # Fitting tests #
+  # 2-2. Fitting tests #
   if(proj=="perm"){
     # Permutation-based test #
     est.cvauc <- get.cv.auc(dat=dat, cv.scheme='5fold', seed=seed)
@@ -131,7 +131,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     out=c(est=est.cvauc, reject=reject)
   } 
   
-  # Figure #
+  # 2-3. Figure #
   if(make.plot){
     # Estimated CV-AUC #
     est.cvauc <- get.cv.auc(dat=dat, cv.scheme='5fold', seed=seed)
