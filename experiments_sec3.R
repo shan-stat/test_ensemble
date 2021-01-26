@@ -62,7 +62,7 @@ res=sapply(seeds, simplify="array", function (seed) {
   p=sum(startsWith(names(dat),"x"))
   myprint(n1,n0,p)
   
-  # Fitting tests #
+  # 2-1. Fitting tests #
   if (startsWith(proj,"BH")) {
     # BH: Benjamini-Hochberg #
     pvals=sapply (1:p, function(i) {
