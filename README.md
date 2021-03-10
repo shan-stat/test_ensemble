@@ -1,8 +1,8 @@
 # test_cvauc
-This document aims to instruct how to reproduce results in the manuscript "Testing a Global Null Hypothesis Using Cross Validated Area Under the ROC Curve". The source codes are split into three main R files "helper_cvauc.R", "experiments_sec2.R", and "experiments_sec3.R". The detailed explanations are as follows.
+This document aims to instruct how to reproduce results in the manuscript "Testing a Global Null Hypothesis Using Cross Validated Area Under the ROC Curve". The source codes are split into four main R files "helper_cvauc.R", "experiments_sec2.R", "experiments_sec3.R", and "experiments_real.R". The details are as follows.
 
 ## helper_cvauc.R
-This R file contains several helper functions that help reproduce results easily.
+The R file contains several helper functions that help reproduce results easily.
 
 ### Function list
 - *sim.1*: generates simulated dataset for Section 2.
@@ -15,7 +15,7 @@ This R file contains several helper functions that help reproduce results easily
 - *get.cv.auc.LeDell*: fits LeDell's confidence interval.
 
 ## experiments_sec2.R
-This R file contains codes for experiments in Section 2.
+The R file contains codes for experiments in Section 2.
 
 Step 1) Setting process arguments
 - You can set conditions of the experiment using the arguments of sim.setting, basic.cv.setting, and proj. The detailed description is in R file.
@@ -27,7 +27,7 @@ Step 2) Experiments
 - Codes in "2-3. Figure" are used for Figure 2 in the manuscript.
 
 ## experiments_sec3.R
-This R file contains codes for experiments in Section 3.
+The R file contains codes for experiments in Section 3.
 
 Step 1) Setting process arguments
 - You can set conditions of the experiment using the arguments of sim.setting, fit.setting, proj, and ipw. The detailed description is in R file.
@@ -37,3 +37,8 @@ Step 2) Experiments
 
 Step 3) Figure B.1 in supplementary material
 - This codes are to draw heatmap plot in Figure B.1 in supplementary material.
+
+## experiments_real.R
+The R file contains codes for experiments in Section 4.
+
+...
