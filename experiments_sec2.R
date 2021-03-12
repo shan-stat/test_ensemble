@@ -97,7 +97,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     }
     
     # P-value #
-    pvalue.test <- sum(est.cvauc < ref.distr) / nperm
+    pvalue.test <- sum(est.cvauc <= ref.distr) / nperm
     ifelse(pvalue.test < 0.05, reject <- 1, reject <- 0)
     out=c(est=est.cvauc, reject=reject)
     
