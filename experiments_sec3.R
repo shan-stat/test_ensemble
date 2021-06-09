@@ -80,7 +80,7 @@ res=sapply(seeds, simplify="array", function (seed) {
   myprint(n1,n0,p)
   f = "as.factor(Y)~z1+z2+" %.% concatList(names(dat)[startsWith(names(dat),"x")],"+")
   
-  # 2-1. Fitting tests #
+  # 2-1. Fitting testing methods #
   if (startsWith(proj,"perm")) {   
     # perm: Permutation-based tests #
     do.est=function(dat.b){
