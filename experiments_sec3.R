@@ -12,7 +12,7 @@ source('caretStack.R')
 
 
 
-### 1. Setting process arguments ###
+### 1. Setting arguments ###
 Args <- commandArgs(trailingOnly=TRUE) 
 if (length(Args)==0) {
   # batch.size and batch.number are for running a batch script
