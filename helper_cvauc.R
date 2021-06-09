@@ -142,7 +142,7 @@ kfold.split=function(k, n1, n0){
   splits
 }
 
-# Random 4:1 CV #
+# Random 4:1 #
 ran.kfold.split=function(k, n1, n0, replicates){
   training.subsets=list()
   test.subsets=list()
@@ -222,7 +222,7 @@ screen_lasso <- function(Y, X, family, obsWeights=rep(1, nrow(X))) {
 }
 
 # Stacking minimum P value and random forest #
-get.st.cvauc = function(dat.train, mp.index, var.index, method, obsWeights=rep(1,nrow(dat.train)), seed=1){
+get.st.auc = function(dat.train, mp.index, var.index, method, obsWeights=rep(1,nrow(dat.train)), seed=1){
   
   # 5-fold CV (fitting learners and obtaining out-of-sample prediction scores) #
   my_control <- trainControl(
