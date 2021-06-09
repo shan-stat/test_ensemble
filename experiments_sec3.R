@@ -274,7 +274,7 @@ res=sapply(seeds, simplify="array", function (seed) {
         all.var <- rep(TRUE,sum(startsWith(names(dat.train),"x")))
         var.index.set <- list(rf=c(TRUE,TRUE,TRUE,all.var)) # the first three TRUE are for Y, z1, and z2
         set.seed(123)
-        pred.st <- get.st.cvauc(dat.train=dat.train, mp.index=mp.index, var.index=var.index.set, method='method.NNloglik')
+        pred.st <- get.st.auc(dat.train=dat.train, mp.index=mp.index, var.index=var.index.set, method='method.NNloglik')
         fast.auc( pred.st, dat.train$y, reverse.sign.if.nece = FALSE, quiet = TRUE )
       } else stop("wrong proj")
     }
