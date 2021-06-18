@@ -8,7 +8,7 @@ source("helper_cvauc.R")
 Args <- commandArgs(trailingOnly=TRUE) 
 if (length(Args)==0) {
   # batch.size and batch.number are arguments for running a batch script
-  # sim.setting: "sim.1_n25_0" for simulation studies in Section 2 (you can change sample size of n25 to others)
+  # sim.setting: "sim.1_n25_0" for simulation studies in Section 2 (you can change sample size from n25 to others)
   # basic.cv.setting: "5-fold" by default
   # proj: "cv_" for comparing cv schemes (e.g. "cv_LPO", "cv_5fold", "cv_10x5fold", and "cv_50xrandom4:1")
   #       "perm" for permutation test and "boot" for bootstrap CI-based test
