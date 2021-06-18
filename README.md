@@ -55,7 +55,7 @@ Step 0) Importing helper function
 
 Step 1) Real RV144 dataset
 - To access RV144 dataset, you can install R package RV144cc using the code "devtools::install_local("RV144cc_2019.08-14.tar")".
-- You can generate the full dataset or the driven data, which are all markers without IgAC1.
+- You can generate the full dataset or the reduced data, which are all markers without IgAC1.
 
 Step 2) Setting arguments
 - You can set experimental conditions using arguments, such as setting, fit.setting, and proj. The detailed comments for each argument are in the R file.
