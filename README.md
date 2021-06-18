@@ -28,7 +28,7 @@ Step 1) Setting arguments
 Step 2) Experiments
 - Codes in "2-1. Comparison CV schemes" are for Table 1 in the manuscript.
 - Codes in "2-2. Comparison permutation test and bootstrap CI-based test" are for Table 2 in the manuscript.
-- Codes in "2-3. Plotting permutation distribution and bootstrap distribution" are for Figure A.1 in the Supplementary Materials in the manuscript.
+- Codes in "2-3. Plotting permutation distribution and bootstrap distribution" are for Figure A.2 in the Supplementary Materials in the manuscript.
 
 ## experiments_sec3.R
 The R file contains codes for simulation studies in Section 3.
