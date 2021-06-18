@@ -23,7 +23,7 @@ Step 0) Importing helper function
 
 Step 1) Setting arguments
 - You can set experimental conditions using arguments, such as sim.setting, basic.cv.setting, and proj. The detailed comments for each argument are in the R file.
-- To make Figure A.1 in the Supplementary Materials, you can set "make.plot" argument with TRUE.
+- To make Figure A.2 in the Supplementary Materials, you can set "make.plot" argument with TRUE.
 
 Step 2) Experiments
 - Codes in "2-1. Comparison CV schemes" are for Table 1 in the manuscript.
