@@ -249,7 +249,7 @@ get.st.auc = function(dat.train, mp.index, var.index, method, obsWeights=rep(1,n
   rf.grid <- expand.grid(mtry = floor(sqrt(sum(var.index$rf)-1)), splitrule = 'gini', min.node.size = 1)
   set.seed( 123 )
   model_list <- caretList(
-    list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf.grid, weights = obsWeights), # RF with full features
+    list(Y~., data=dat.train[,var.index$rf], tuneGrid = rf.grid, weights = obsWeights),
     trControl=my_control,
     methodList=c('ranger')
   )
