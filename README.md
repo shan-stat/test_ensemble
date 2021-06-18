@@ -1,4 +1,4 @@
-# test_cvauc
+# test_ensemble
 This document aims to instruct how to reproduce results in the manuscript "Testing a Global Null Hypothesis Using Ensemble Machine Learning Methods". The source codes are split into four main R files "helper_cvauc.R", "experiments_sec2.R", "experiments_sec3.R", and "experiments_real.R". The details are as follows.
 
 ## helper_cvauc.R
