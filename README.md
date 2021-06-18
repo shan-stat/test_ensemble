@@ -44,7 +44,7 @@ Step 2) Experiments
 - Codes in "2-1. Fitting testing methods" are for fitting all tests, including perm_MP, perm_RR, perm_BG, perm_RF, perm_AB, and perm_stacking, in the manuscript. These codes are used for Table 3 and 4 in the manuscript.
 
 Step 3) Figure C.1 in supplementary material
-- This codes are to draw Figure C.1 in the Supplementary Materials.
+- This codes are to draw Figure B.1 in the Supplementary Materials.
 
 ## experiments_real.R
 The R file contains codes for real data experiments in Section 4.
