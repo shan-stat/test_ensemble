@@ -115,7 +115,7 @@ res=sapply(seeds, simplify="array", function (seed) {
     }
     
     # Percentile bootstrap CI #
-    perc.ci <- quantile(ref.distr, c(0.1, 0.90)) # alpha=0.05; 1-2alpha CI
+    perc.ci <- quantile(ref.distr, c(0.1, 0.90))
     perc.ci.lb <- perc.ci[1] ; perc.ci.ub <- perc.ci[2]
     ifelse( (0.5 < perc.ci.lb ) , reject <- 1, reject <- 0 )
     out=c(est=est.cvauc, reject=reject)
