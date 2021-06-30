@@ -7,3 +7,8 @@ gender - clinical covariate (M or F)
 behavioral_risk - clinical covariate (Low, Medium, High)
 IgAC1 - binding of IgA antibodies to the C1 region of envelope protein
 
+
+For a description of all 194 biomarkers, please consult 
+
+Haynes BF, Gilbert PB, McElrath JM, Zolla-Pazner S, Tomaras GD, Alam SM, Evans DT, Montefiori DC, Karnasuta C, Sutthent R, Liao H-X, DeVico AL, Lewis GK, Williams C, Fong Y, Janes H, DeCamp A, Huang Y, Rao M, Billings E, Karasavvas N, Robb ML, Ngauy V, deSouza MS, Paris R, Ferrari G, Bailer RT, Soderberg K, Andrews C, Berman PW, Frahm N, DeRosa SC, Alpert MD, Yates NL, Shen X, Koup RA, Pitisuttithum P, Kaewkungwal J, Nitayaphan S, Rerks-Ngarm S, Michael NL, Kim JH. (2012) Immune correlates analysis of the ALVAC-AIDSVAX HIV-1 vaccine efficacy trial. New England Journal of Medicine, 366(14), 1275-1286.
+
