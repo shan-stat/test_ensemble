@@ -55,7 +55,7 @@ Step 0) Importing helper function
 
 Step 1) Real RV144 dataset
 - While the RV144 dataset cannot be shared because they are proprietary to the US Military HIV Research Program, interested researchers may request access to anonymized patient-level data at PubRequest@hivresearch.org.
-- Instead we produce an anonymized dataset with only the variables used in the manuscript. Under this repostiry, "rv144.csv" is the dataset and "rv144_dsc.txt" describes some major variables.
+- Instead we produce an anonymized dataset with only the variables used in the manuscript. Under this repository, "rv144.csv" is the dataset, and "rv144_dsc.txt" describes some major variables.
 - Using the "rv144.csv", the full dataset and the reduced data (-IgAC1) can be generated.
 
 Step 2) Setting arguments
