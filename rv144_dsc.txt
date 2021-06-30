@@ -9,4 +9,4 @@ IgG - IgG antibodies
 IgA - IgA antibodies
 IgAC1 - binding of IgA antibodies to the C1 region of envelope protein
 
-In the RV144 dataset, there are 194 biomarkers including IgG, IgA, IgAC1, and the other 191 biomarkers.
+In the anonymized RV144 dataset ("rv144.csv" file), there are 194 biomarkers including IgG, IgA, IgAC1, and the other 191 biomarkers.
