@@ -4,7 +4,6 @@ source("helper_cvauc.R")
 
 # The following four files are required for stacking method #
 setwd("set your local directory where the following four files are located")
-#setwd("/Users/shan/Desktop/Paper/YFong/1.ML/Code/caretEnsemble_modified/R")
 source('helper_functions.R')
 source('caretList.R')
 source('caretEnsemble.R')
