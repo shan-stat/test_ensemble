@@ -4,7 +4,6 @@ source("helper_cvauc.R")
 
 # The following four files are required for fitting stacking #
 setwd("set your local directory where the following four files are located")
-#setwd("/Users/shan/Desktop/Paper/YFong/1.ML/Code/caretEnsemble_modified/R")
 source('helper_functions.R')
 source('caretList.R')
 source('caretEnsemble.R')
@@ -13,7 +12,6 @@ source('caretStack.R')
 
 
 ### 1. Real RV144 dataset ###
-#setwd("/Users/shan/Desktop/Paper/YFong/1.ML")
 #devtools::install_local("RV144cc_2019.08-14.tar")
 data("allcc", package="RV144cc")
 tmp=names(allcc)
