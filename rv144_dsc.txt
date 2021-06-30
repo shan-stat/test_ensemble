@@ -1,0 +1,20 @@
+### Description ###
+
+The RV144 dataset contains 246 observations (vaccine recipients), outcome variable (y), two clinical covariates (gender and behavioral_risk), and a total of 194 biomarkers.
+
+
+
+### Major variables ###
+
+y - outcome variable (0 or 1)
+gender - clinical covariate (M or F)
+behavioral_risk - clinical covariate (Low, Medium, High)
+IgG - IgG antibodies
+IgA - IgA antibodies
+IgAC1 - binding of IgA antibodies to the C1 region of envelope protein
+
+In the RV144 dataset, there are 194 biomarkers including IgG, IgA, IgAC1, and the other 191 biomarkers.
+
+
+
+
