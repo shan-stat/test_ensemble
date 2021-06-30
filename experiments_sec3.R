@@ -56,19 +56,11 @@ res=sapply(seeds, simplify="array", function (seed) {
   
   # Simulated dataset #
   if (sim.model=="rv144ph2")  {
-    if((proj=='perm_MP' & ipw=='w')){
-      if(sim.linear=="TRUE"){
-        dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.4 else -6.1, betas=if(beta==1) c(1.2,1.2,1,-0.8,0) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n, full=TRUE) # for linear
-      } else {
-        dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.5 else -6.1, betas=if(beta==1) c(0.6,0.6,0.4,0,-2) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n, full=TRUE) # for nonlinear
-      }
-    } else {
       if(sim.linear=="TRUE"){
         dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.4 else -6.1, betas=if(beta==1) c(1.2,1.2,1,-0.8,0) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for linear
       } else {
         dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.5 else -6.1, betas=if(beta==1) c(0.6,0.6,0.4,0,-2) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for nonlinear
       }
-    }
   } else stop ("wrong sim.model")
   
   # Actual number of cases and controls #
@@ -89,16 +81,9 @@ res=sapply(seeds, simplify="array", function (seed) {
         dat.train=rbind(data.frame(y=1,dat.b$case), data.frame(y=0,dat.b$control))
         pvals=sapply (1:p, function(i) {
           set.seed(123)
-          if(ipw=='uw') {
-            # Unweighted #
-            fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
-            last(summary(fit)$coef)
-          } else if(ipw=='w') {
-            # Weighted #
-            dstrat<-twophase(id=list(~1,~1), strata=list(NULL,~bstrat), subset=~ph2, data=dat.train)
-            fit=svyglm(as.formula("y~z1+z2+x"%.%i), design=dstrat, family="binomial")
-            summary(fit)$coef["x"%.%i,"Pr(>|t|)"]
-          }
+          # Unweighted #
+          fit=glm(as.formula("y~z1+z2+x"%.%i), dat.train, family=binomial)
+          last(summary(fit)$coef)
         })
         min(pvals)
         
