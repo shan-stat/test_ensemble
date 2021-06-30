@@ -303,7 +303,7 @@ res
 
 
 
-### 3. Figure C.1 in supplementary material ###
+### 3. Figure B.1 in supplementary material ###
 dat=sim.rv144(n1=NULL, n0=NULL, seed=1, alpha=-7.5, betas=c(0.6,0.6,0.4,0,-2), beta.z.1=0.5, beta.z.2=0, n=10000) # for nonlinear
 cor=cor(select(dat, -c(y,z1,z2,bstrat,ph2,wt,fpc)))
 breaks=c(-1,-.7,-.5,-.3,-.1,.1,.3,.5,.7,1)
