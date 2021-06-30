@@ -15,12 +15,12 @@ source('caretStack.R')
 scenario <- c("full","-IgAC1")[1] # full or -IgAC1 
 if(scenario=="full"){
   # Full scenario #
-  dat.all <- read.table("rv144.txt",header=TRUE, sep=',', stringsAsFactors=TRUE)
+  dat.all <- read.table("rv144.csv",header=TRUE, sep=',', stringsAsFactors=TRUE)
   names(dat.all) <- c("y","z1","z2","x"%.%1:194) # for simplicity, convert names to z (clinical covariates) and x (biomarkers).
   dat <- dat.all
 } else if(scenario=="-IgAC1"){
   # -IgAC1 scenario #
-  dat.igac1 <- read.table("rv144.txt",header=TRUE, sep=',', stringsAsFactors=TRUE)
+  dat.igac1 <- read.table("rv144.csv",header=TRUE, sep=',', stringsAsFactors=TRUE)
   dat.igac1 <- select(dat.igac1, -"IgAC1") # using all markers without IgAC1
   names(dat.igac1) <- c("y","z1","z2","x"%.%1:193) # for simplicity, convert names to z (clinical covariates) and x (biomarkers).
   dat <- dat.igac1
