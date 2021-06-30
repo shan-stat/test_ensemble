@@ -54,8 +54,8 @@ Step 0) Importing helper function
 - To perform stacking method, you should import four R files under the folder caretEnsembleR, where there are "helper_functions.R", "caretList.R", "caretEnsemble.R", and "caretStack.R".
 
 Step 1) Real RV144 dataset
-- To access RV144 dataset, you can install R package RV144cc using the code "devtools::install_local("RV144cc_2019.08-14.tar")".
-- You can generate the full dataset or the reduced data, which are all markers without IgAC1.
+- While the RV144 dataset cannot be shared because they are proprietary to the US Military HIV Research Program, interested researchers may request access to anonymized patient-level data at PubRequest@hivresearch.org.
+- The full dataset or the reduced data (-IgAC1) is generated.
 
 Step 2) Setting arguments
 - You can set experimental conditions using arguments, such as setting, fit.setting, and proj. The detailed comments for each argument are in the R file.
