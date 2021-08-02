@@ -18,7 +18,7 @@ The R file contains several helper functions that help reproduce results easily.
 ## experiments_simul.R
 The R file contains codes for simulation studies in Section 2.
 
-1) Section 2.1
+### 1) Section 2.1
 Step 0) Importing helper function
 - You should import "helper_cvauc.R" file.
 
@@ -28,7 +28,7 @@ Step 1) Setting arguments
 Step 2) Experiments
 - Codes in "2-1. Comparison CV schemes" are for Table 1 in the manuscript.
 
-2) Section 2.2 and 2.3
+### 2) Section 2.2 and 2.3
 
 Step 0) Importing helper function
 - You should import "helper_cvauc.R" file.
