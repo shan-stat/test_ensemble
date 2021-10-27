@@ -1,13 +1,9 @@
-### Import helper functions ###
-setwd("set your local directory where helper_cvauc.R is located")
 source("helper_cvauc.R")
-
-# The following four files are required for fitting stacking #
-setwd("set your local directory where the following four files are located")
-source('helper_functions.R')
-source('caretList.R')
-source('caretEnsemble.R')
-source('caretStack.R')
+# the following scripts are modified from the caretEnsembleR package
+source('caretEnsembleR/helper_functions.R')
+source('caretEnsembleR/caretList.R')
+source('caretEnsembleR/caretEnsemble.R')
+source('caretEnsembleR/caretStack.R')
 
 
 
