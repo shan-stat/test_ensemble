@@ -26,7 +26,8 @@ sim.rv144=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL, f
     bstrat = rbern(n,prob=c(.15,.2,.2,.2,.25),generalized=T)
   }
   
-  shared=rnorm(n,0,sd=sqrt(0.1)) # shared immune response, but not associated with outcome
+  # u_i, shared by all markers
+  shared=rnorm(n,0,sd=sqrt(0.1)) 
   
   # group 1 
   p=1
@@ -194,4 +195,123 @@ get.st.auc = function(dat.train, mp.index, var.index, method, obsWeights=rep(1,n
   res.st.fit <- method$computeCoef(Z = pred.mat, Y =(as.numeric(pred.cv$obs)-1), obsWeights=obsWeights, libraryNames=names(var.index), verbose=FALSE, control=list(trimLogit=0.001))
   pred.st <- method$computePred(predY = pred.mat, coef = res.st.fit$coef, control=list(trimLogit=0.001))
   pred.st
+}
+
+
+#combine.markers=function(x,y,z) exp(x)+exp(y)+exp(z)
+combine.markers=function(x,y,z) scale(exp(scale(x+y+z)+5), center=FALSE)
+
+# Simulated RV144 dataset in Section 2.2 and 2.3 #
+sim.rv144.lognorm=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n=NULL, full=FALSE) {
+  
+  set.seed(seed)
+  if (is.null(n)) {
+    n=n1+n0
+    bstrat=rep(1,n)
+  } else {
+    # two phase sampling stratum
+    bstrat = rbern(n,prob=c(.15,.2,.2,.2,.25),generalized=T)
+  }
+  
+  # u_i, shared by all markers
+  shared=rnorm(n,0,sd=sqrt(0.1)) 
+  
+  # group 1 
+  p=1
+  x.1=rnorm(n,0,sd=sqrt(0.6))
+  grp.1=matrix(rnorm(p*n,0,sd=sqrt(0.1)), ncol=p)
+  grp.1=combine.markers(shared, x.1, grp.1)
+  
+  # group 2 
+  p=2
+  x.2=rnorm(n,0,sd=sqrt(0.6))
+  grp.2=matrix(rnorm(p*n,0,sd=sqrt(0.3)), ncol=p)
+  grp.2=combine.markers(shared, x.2, grp.2)
+  
+  # group 3
+  p=15
+  # first simulate a latent variable, which is associated with outcome
+  x.3=rnorm(n,0,sd=sqrt(0.6))
+  # now add noise
+  grp.3=matrix(rnorm(p*n,0,sd=sqrt(0.3)), ncol=p)
+  # make some variables more noisy than others
+  grp.3=t(t(grp.3) * c(rep(1,5), rep(10,5), rep(30,5)))
+  grp.4=combine.markers(shared, x.3, grp.3)
+#  grp.3=shared+x.3+grp.3
+#  grp.3=scale(grp.3)#otherwise, they will be too big after exp 
+#  # exponentiate group 3
+#  grp.3=exp((grp.3+10)*2)
+#  grp.3=scale(grp.3, center=FALSE) # center is FALSE so that we can take log if necessary
+  
+  # group 4
+  p=10
+  # first simulate a latent variable, which is associated with outcome
+  x.4=rnorm(n,0,sd=sqrt(0.6))
+  # now add noise
+  grp.4=matrix(rnorm(p*n,0,sd=sqrt(0.3)), ncol=p)
+  # make some variables more noisy than others
+  grp.4=t(t(grp.4) * c(rep(1,6), rep(10,4)))
+  grp.4=combine.markers(shared, x.4, grp.4)
+  
+  p=36; grp.5=combine.markers(rnorm(n,0,sd=sqrt(0.5)) , matrix(rnorm(p*n,0,sd=sqrt(0.4)), ncol=p) , shared)
+  p=16; grp.6=combine.markers(rnorm(n,0,sd=sqrt(0.5)) , matrix(rnorm(p*n,0,sd=sqrt(0.4)), ncol=p) , shared)    
+  p= 6; grp.7=combine.markers(rnorm(n,0,sd=sqrt(0.5)) , matrix(rnorm(p*n,0,sd=sqrt(0.4)), ncol=p) , shared)
+  p= 6; grp.8=combine.markers(rnorm(n,0,sd=sqrt(0.4)) , matrix(rnorm(p*n,0,sd=sqrt(0.5)), ncol=p) , shared)
+  p= 6; grp.9=combine.markers(rnorm(n,0,sd=sqrt(0.4)) , matrix(rnorm(p*n,0,sd=sqrt(0.5)), ncol=p) , shared)
+  p= 6;grp.10=combine.markers(rnorm(n,0,sd=sqrt(0.3)) , matrix(rnorm(p*n,0,sd=sqrt(0.6)), ncol=p) , shared)
+  p= 6;grp.11=combine.markers(rnorm(n,0,sd=sqrt(0.3)) , matrix(rnorm(p*n,0,sd=sqrt(0.6)), ncol=p) , shared)
+  p= 6;grp.12=combine.markers(rnorm(n,0,sd=sqrt(0.3)) , matrix(rnorm(p*n,0,sd=sqrt(0.6)), ncol=p) , shared)
+  p= 6;grp.13=combine.markers(rnorm(n,0,sd=sqrt(0.2)) , matrix(rnorm(p*n,0,sd=sqrt(0.7)), ncol=p) , shared)
+  p= 6;grp.14=combine.markers(rnorm(n,0,sd=sqrt(0.2)) , matrix(rnorm(p*n,0,sd=sqrt(0.7)), ncol=p) , shared)
+  p= 6;grp.15=combine.markers(rnorm(n,0,sd=sqrt(0.2)) , matrix(rnorm(p*n,0,sd=sqrt(0.7)), ncol=p) , shared)
+  p= 6;grp.16=combine.markers(rnorm(n,0,sd=sqrt(0.2)) , matrix(rnorm(p*n,0,sd=sqrt(0.7)), ncol=p) , shared)
+  p=10;grp.17=combine.markers(                     0  , matrix(rnorm(p*n,0,sd=sqrt(0.9)), ncol=p) , shared)
+  
+  if(beta.z.1==0 & beta.z.2==0) {
+    # do this instead of generate random samples so that previous results without z1 z2 can be reproduced
+    z.1=rep(0,n)
+    z.2=rep(0,n)        
+  } else {
+    z.1=rbern(n,0.5)-0.5
+    z.2=rnorm(n)
+  }
+  y=rbern(n, expit(alpha+beta.z.1*z.1+beta.z.2*z.2+betas[1]*x.1+betas[2]*x.2+betas[3]*x.3+betas[4]*x.4+betas[5]*x.2*x.4)); #mean(y)
+  
+  dat=data.frame(y, z.1, z.2, bstrat, grp.1, grp.2, grp.3, grp.4, grp.5, grp.6, grp.7, grp.8, grp.9, grp.10, grp.11, grp.12, grp.13, grp.14, grp.15, grp.16, grp.17)
+  names(dat)=c("y","z1","z2", "bstrat", "x"%.%1:(ncol(dat)-4))
+  
+  # two-phase sampling 
+  if (all(bstrat==1)) {
+    dat$ph2=1
+    dat$wt=1
+  } else {
+    tab=with(dat, table(bstrat, y))
+    # sample all cases
+    dat$ph2=ifelse(dat$y==1, 1, 0)
+    # inverse sampling prob as wt
+    dat$wt=1
+    # fpc: the number of observations in each stratum of the population
+    dat$fpc=1
+    # sample 1:5 case:control ratio
+    for (k in 1:max(dat$bstrat)) {
+      dat$ph2[sample(which(dat$bstrat==k & dat$y==0), 5*tab[k,2])]=1 # stratified sampling without replacement
+      dat$wt [       which(dat$bstrat==k & dat$y==0)]=tab[k,1]/(5*tab[k,2])
+      dat$fpc[       which(dat$bstrat==k)]=table(bstrat)[k]
+    }
+  }
+  
+  # remove empty strata
+  if(any(table(bstrat, y)[,'1']==0)){
+    ept <- unname(which(table(bstrat, y)[,'1']==0))
+    for(i in 1:length(ept)){
+      dat <- subset(dat, bstrat!=ept[i])
+    }
+  }
+  
+  # phase two dataset vs full dataset
+  if(full==FALSE){
+    dat[dat$ph2==1,]
+  } else if(full==TRUE){
+    dat
+  }
 }

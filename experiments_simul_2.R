@@ -17,7 +17,7 @@ if (length(Args)==0) {
   # proj: "perm_WY" (WY), "perm_RR", "perm_BG", "perm_RF", "perm_AB", "perm_ST" (perm_stacking)
   # ipw: "uw" for unweighted; "sw" for semi-weighted; w for weighted
   # scr: "TRUE" for lasso screening; "FALSE" for no screening
-  Args=c(batch.size="1000",batch.number="1",sim.setting="rv144ph2_n10000_1",sim.linear="FALSE",fit.setting="5fold",proj="perm_WY",ipw="uw",scr="FALSE")
+  Args=c(batch.size="1000",batch.number="1",sim.setting="rv144lognormph2_n10000_1",sim.linear="FALSE",fit.setting="5fold",proj="perm_WY",ipw="uw",scr="FALSE")
 }
 myprint(Args)
 i=0;
@@ -37,6 +37,7 @@ i=i+1; scr=Args[i]
 
 nperm=1e3 # permutation replicates
 verbose=ifelse(unix(),0,2)
+seed=1
 
 ### 2. Experiments ###
 res=sapply(seeds, simplify="array", function (seed) {
@@ -54,6 +55,12 @@ res=sapply(seeds, simplify="array", function (seed) {
         dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.4 else -6.1, betas=if(beta==1) c(1.2,1.2,1,-0.8,0) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for linear
       } else {
         dat=sim.rv144(n1, n0, seed, alpha=if(beta==1) -7.5 else -6.1, betas=if(beta==1) c(0.6,0.6,0.4,0,-2) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for nonlinear
+      }
+  } else if (sim.model=="rv144lognormph2")  {
+      if(sim.linear=="TRUE"){
+        dat=sim.rv144.lognorm(n1, n0, seed, alpha=if(beta==1) -7.4 else -6.1, betas=if(beta==1) c(1.2,1.2,1,-0.8,0) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for linear
+      } else {
+        dat=sim.rv144.lognorm(n1, n0, seed, alpha=if(beta==1) -7.5 else -6.1, betas=if(beta==1) c(0.6,0.6,0.4,0,-2) else c(0,0,0,0,0), beta.z.1=0.5, beta.z.2=0, n=n) # for nonlinear
       }
   } else stop ("wrong sim.model")
   
