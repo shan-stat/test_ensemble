@@ -315,3 +315,39 @@ sim.rv144.lognorm=function(n1, n0, seed, alpha, betas, beta.z.1=0, beta.z.2=0, n
     dat
   }
 }
+
+
+
+###
+
+
+
+# for revision
+# LeDell CI 
+get.cv.auc.LeDell=function(dat, cv.scheme, seed) {
+  splits=get.splits(dat, cv.scheme, seed)
+  scores=lapply (splits, function (split){
+    dat.train=rbind(data.frame(Y=1,dat$case[split$training$case,,drop=F]),   data.frame(Y=0,dat$control[split$training$control,,drop=F]))
+    dat.test =rbind(data.frame(Y=1,dat$case[split$test$case,,drop=F]),       data.frame(Y=0,dat$control[split$test$control,,drop=F]))
+    fit=glm(Y~., dat.train, family=binomial)    
+    predict(fit, newdata=dat.test)
+  })
+  labels=lapply (splits, function (split){
+    dat.test =rbind(data.frame(Y=1,dat$case[split$test$case,,drop=F]),       data.frame(Y=0,dat$control[split$test$control,,drop=F]))
+    dat.test$Y
+  })
+  out <- ci.cvAUC(scores, labels, confidence = 0.90) # alpha=0.05; (1-2alpha) CI for size; (1-alpha) CI for cvp
+  c(est=out$cvAUC, lb=out$ci[1], ub=out$ci[2])
+}
+
+# Benkeser CI (cvtmle)
+library(nlpred)
+get.cvtmle=function(dat, seed){
+  set.seed(seed)
+  dat.train <- rbind(data.frame(Y=1,dat$case), data.frame(Y=0,dat$control)) # cvtmle uses the whole dataset
+  out <- cv_auc(Y=dat.train$Y, X=select(dat.train,-Y), K=5, learner="glm_wrapper", nested_cv=FALSE) # 5-fold
+  out.ci <- print(out, ci_level=0.90) # alpha=0.05; (1-2alpha) CI for size; (1-alpha) CI for cvp
+  c(est=out.ci['cvtmle','est'], lb=out.ci['cvtmle','cil'], ub=out.ci['cvtmle','ciu'])
+}
+
+
