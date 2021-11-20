@@ -11,8 +11,8 @@ This file contains several helper functions that help reproduce results easily.
 - *get.cv.auc*: fits multiple logistic regression and estimates cvAUC.
 - *screen_lasso*: performs lasso variable screening.
 - *get.st.auc*: performs stacking Westfall and Young’s method and random forest.
-- *get.cv.auc.LeDell*: permform LeDell CI-based test
-- *get.cvtmle*: permform Benkeser CI-based test
+- *get.cv.auc.LeDell*: permform LeDell CI-based test.
+- *get.cvtmle*: permform Benkeser CI-based test.
 
 ## experiments_simul_1.R
 Theis file contains codes for simulation studies in Section 2.1 and Supplementary Materials Section C.
